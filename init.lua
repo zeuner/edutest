@@ -32,8 +32,11 @@ minetest.register_on_player_receive_fields(
 	elseif nil ~= fields[
 	    "edutest_freeze"
         ] then
+	    local formspec = "size[7,7]"
+	    formspec = formspec .. "label[0,0;EDUtest > Freeze]"
+	    formspec = formspec .. "button[0,2;2,2.5;edutest_back;Back]"
 	    player:set_inventory_formspec(
-	        "button[0,0;2,0.5;edutest_back;Back]"
+	        formspec
 	    )
 	    return true
         end
