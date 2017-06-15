@@ -34,7 +34,7 @@ minetest.register_on_player_receive_fields(
         ] then
             local formspec = "size[7,7]"
             formspec = formspec .. "label[0,0;EDUtest > Freeze]"
-            formspec = formspec .. "button[0,1;2,1.5;edutest_back;Back]"
+            formspec = formspec .. "button[0,0.5;2,1.5;edutest_back;Back]"
 	    local dropdown = "dropdown[0,2;2;frozen;All students"
 	    edutest.for_all_students(
 	        function(
@@ -46,6 +46,8 @@ minetest.register_on_player_receive_fields(
 	    )
 	    dropdown = dropdown .. ";1]"
 	    formspec = formspec .. dropdown
+            formspec = formspec .. "button[0,3;2,1.5;edutest_do_freeze;Freeze]"
+            formspec = formspec .. "button[3,3;2,1.5;edutest_do_unfreeze;Unfreeze]"
             player:set_inventory_formspec(
                 formspec
             )
@@ -62,7 +64,7 @@ unified_inventory.register_page(
             player
         )
             local formspec = "label[0,0;EDUtest]"
-            formspec = formspec .. "button[0,1;2,1.5;edutest_freeze;Freeze]"
+            formspec = formspec .. "button[0,0.5;2,1.5;edutest_freeze;Freeze]"
             return {
                 formspec = formspec,
             }
