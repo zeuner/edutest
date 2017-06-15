@@ -21,6 +21,23 @@ minetest.register_on_player_receive_fields(
 	        "EDUtest field: " .. k .. " | " .. v
 	    )
         end
+	if nil ~= fields[
+	    "edutest_back"
+        ] then
+	    unified_inventory.set_inventory_formspec(
+	        player,
+		"edutest"
+	    )
+	    return true
+	elseif nil ~= fields[
+	    "edutest_freeze"
+        ] then
+	    player:set_inventory_formspec(
+	        "button[0,0;2,0.5;edutest_back;Back]"
+	    )
+	    return true
+        end
+        return false
     end
 )
 
@@ -31,7 +48,7 @@ unified_inventory.register_page(
             player
         )
             local formspec = "label[0,0;EDUtest]"
-	    formspec = formspec .. "button[2,0;4,0.5;testfield;Test]"
+	    formspec = formspec .. "button[0,2;2,2.5;edutest_freeze;Freeze]"
             return {
                 formspec = formspec,
             }
