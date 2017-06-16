@@ -6,22 +6,6 @@ minetest.register_on_player_receive_fields(
     )
         local name = player:get_player_name(
         )
-        print(
-            "EDUtest received button press"
-        )
-        print(
-            "EDUtest player: " .. name
-        )
-        print(
-            "EDUtest form: " .. formname
-        )
-        for k,v in pairs(
-            fields
-        ) do
-            print(
-                "EDUtest field: " .. k .. " | " .. v
-            )
-        end
         if nil ~= fields[
             "edutest_back"
         ] then
