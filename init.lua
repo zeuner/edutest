@@ -21,141 +21,44 @@ local field_debug_dump = function(
     end
 end
 
-local button_handlers = {
-}
-
-local set_main_menu_button_handlers
-
-set_main_menu_button_handlers = function(
+local new_form = function(
 )
-    button_handlers[
-        "edutest_freeze"
-    ] = function(
-        player,
-        formname,
-        fields
+    local constructed = {
+        formspec = "",
+        handlers = {
+        },
+    }
+    return constructed
+end
+
+local add_button = function(
+    form,
+    position,
+    size,
+    field,
+    label,
+    handler
+)
+    form.formspec = form.formspec .. "button[" .. position .. ";" .. size .. ";" field .. ";" .. label .. "]"
+    form.handlers[
+        field
+    ] = handler
+end
+
+local new_sub_form = function(
+    label
+)
+    local constructed = new_form(
     )
-        local formspec = "size[7,7]"
-        formspec = formspec .. "label[0,0;EDUtest > Freeze]"
-        formspec = formspec .. "button[0,0.5;2,1.5;edutest_back;Back]"
-        local dropdown = "dropdown[0,2;2;frozen;All students"
-        edutest.for_all_students(
-            function(
-                player,
-                name
-            )
-                dropdown = dropdown .. "," .. name
-            end
-        )
-        dropdown = dropdown .. ";1]"
-        formspec = formspec .. dropdown
-        formspec = formspec .. "button[0,3;2,1.5;edutest_do_freeze;Freeze]"
-        formspec = formspec .. "button[3,3;2,1.5;edutest_do_unfreeze;Unfreeze]"
-        button_handlers = {
-        }
-        button_handlers[
-            "edutest_do_freeze"
-        ] = function(
-            player,
-            formname,
-            fields
-        )
-            local name = player:get_player_name(
-            )
-            if nil == fields[
-                "frozen"
-            ] then
-                print(
-                    "EDUtest unexpected condition: frozen field empty"
-                )
-                field_debug_dump(
-                    name,
-                    formname,
-                    fields
-                )
-                return false
-            end
-            if "All students" == fields[
-                "frozen"
-            ] then
-                minetest.chatcommands[
-                    "every_student"
-                ].func(
-                    name,
-                    "freeze subject"
-                )
-                return true
-            end
-            minetest.chatcommands[
-                "freeze"
-            ].func(
-                name,
-                fields[
-                    "frozen"
-                ]
-            )
-            return true
-        end
-        button_handlers[
-            "edutest_do_unfreeze"
-        ] = function(
-            player,
-            formname,
-            fields
-        )
-            local name = player:get_player_name(
-            )
-            if nil == fields[
-                "frozen"
-            ] then
-                print(
-                    "EDUtest unexpected condition: frozen field empty"
-                )
-                field_debug_dump(
-                    name,
-                    formname,
-                    fields
-                )
-                return false
-            end
-            if "All students" == fields[
-                "frozen"
-            ] then
-                minetest.chatcommands[
-                    "every_student"
-                ].func(
-                    name,
-                    "unfreeze subject"
-                )
-                minetest.chatcommands[
-                    "every_student"
-                ].func(
-                    name,
-                    "grant subject interact"
-                )
-                return true
-            end
-            minetest.chatcommands[
-                "unfreeze"
-            ].func(
-                name,
-                fields[
-                    "frozen"
-                ]
-            )
-            minetest.chatcommands[
-                "grant"
-            ].func(
-                name,
-                fields[
-                    "frozen"
-                ] .. " interact"
-            )
-            return true
-        end
-        button_handlers[
-            "edutest_back"
-        ] = function(
+    constructed.formspec = constructed.formspec .. "size[7,7]"
+    constructed.formspec = constructed.formspec .. "label[0,0;" .. label .. "]"
+    add_button(
+        constructed,
+        "0,0.5",
+        "2,1.5",
+        "edutest_back",
+        "Back",
+        function(
             player,
             formname,
             fields
@@ -170,8 +73,169 @@ set_main_menu_button_handlers = function(
             )
             return true
         end
-        player:set_inventory_formspec(
-            formspec
+    )
+    return constructed
+end
+
+local set_current_inventory_form = function(
+    player,
+    form
+)
+    for k, v in pairs(
+        form.handlers
+    ) do
+        button_handlers = {
+        }
+        button_handlers[
+            k
+        ] = v
+    end
+    player:set_inventory_formspec(
+        form.formspec
+    )
+end
+
+local button_handlers = {
+}
+
+local set_main_menu_button_handlers
+
+set_main_menu_button_handlers = function(
+)
+    button_handlers[
+        "edutest_freeze"
+    ] = function(
+        player,
+        formname,
+        fields
+    )
+        local form = new_sub_form(
+            "EDUtest > Freeze"
+        )
+        local dropdown = "dropdown[0,2;2;frozen;All students"
+        edutest.for_all_students(
+            function(
+                player,
+                name
+            )
+                dropdown = dropdown .. "," .. name
+            end
+        )
+        dropdown = dropdown .. ";1]"
+        form.formspec = form.formspec .. dropdown
+        add_button(
+            form,
+            "0,3",
+            "2,1.5",
+            "edutest_do_freeze",
+            "Freeze",
+            function(
+                player,
+                formname,
+                fields
+            )
+                local name = player:get_player_name(
+                )
+                if nil == fields[
+                    "frozen"
+                ] then
+                    print(
+                        "EDUtest unexpected condition: frozen field empty"
+                    )
+                    field_debug_dump(
+                        name,
+                        formname,
+                        fields
+                    )
+                    return false
+                end
+                if "All students" == fields[
+                    "frozen"
+                ] then
+                    minetest.chatcommands[
+                        "every_student"
+                    ].func(
+                        name,
+                        "freeze subject"
+                    )
+                    return true
+                end
+                minetest.chatcommands[
+                    "freeze"
+                ].func(
+                    name,
+                    fields[
+                        "frozen"
+                    ]
+                )
+                return true
+            end
+        )
+        add_button(
+            form,
+            "3,3",
+            "2,1.5",
+            "edutest_do_unfreeze",
+            "Unfreeze",
+            function(
+                player,
+                formname,
+                fields
+            )
+                local name = player:get_player_name(
+                )
+                if nil == fields[
+                    "frozen"
+                ] then
+                    print(
+                        "EDUtest unexpected condition: frozen field empty"
+                    )
+                    field_debug_dump(
+                        name,
+                        formname,
+                        fields
+                    )
+                    return false
+                end
+                if "All students" == fields[
+                    "frozen"
+                ] then
+                    minetest.chatcommands[
+                        "every_student"
+                    ].func(
+                        name,
+                        "unfreeze subject"
+                    )
+                    minetest.chatcommands[
+                        "every_student"
+                    ].func(
+                        name,
+                        "grant subject interact"
+                    )
+                    return true
+                end
+                minetest.chatcommands[
+                    "unfreeze"
+                ].func(
+                    name,
+                    fields[
+                        "frozen"
+                    ]
+                )
+                minetest.chatcommands[
+                    "grant"
+                ].func(
+                    name,
+                    fields[
+                        "frozen"
+                    ] .. " interact"
+                )
+                return true
+            end
+        )
+        set_current_inventory_form(
+	    player,
+	    form
         )
         return true
     end
