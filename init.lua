@@ -5,7 +5,7 @@ minetest.register_on_player_receive_fields(
         fields
     )
         local name = player:get_player_name(
-	)
+        )
         print(
             "EDUtest received button press"
         )
@@ -124,5 +124,16 @@ unified_inventory.register_button(
     {
         type = "image",
         image = "edutest_gui.png",
+        condition = function(
+            player
+        )
+            return minetest.check_player_privs(
+                player:get_player_name(
+                ),
+                {
+                    teacher = true,
+                }
+            )
+        end,
     }
 )
