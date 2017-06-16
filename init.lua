@@ -4,12 +4,13 @@ minetest.register_on_player_receive_fields(
         formname,
         fields
     )
+        local name = player:get_player_name(
+	)
         print(
             "EDUtest received button press"
         )
         print(
-            "EDUtest player: " .. player:get_player_name(
-            )
+            "EDUtest player: " .. name
         )
         print(
             "EDUtest form: " .. formname
@@ -61,7 +62,7 @@ minetest.register_on_player_receive_fields(
                 minetest.chatcommands[
                     "every_student"
                 ].func(
-                    player,
+                    name,
                     "freeze subject"
                 )
                 return true
@@ -69,7 +70,7 @@ minetest.register_on_player_receive_fields(
             minetest.chatcommands[
                 "freeze"
             ].func(
-                player,
+                name,
                 fields[
                     "frozen"
                 ]
@@ -84,7 +85,7 @@ minetest.register_on_player_receive_fields(
                 minetest.chatcommands[
                     "every_student"
                 ].func(
-                    player,
+                    name,
                     "unfreeze subject"
                 )
                 return true
@@ -92,7 +93,7 @@ minetest.register_on_player_receive_fields(
             minetest.chatcommands[
                 "unfreeze"
             ].func(
-                player,
+                name,
                 fields[
                     "frozen"
                 ]
