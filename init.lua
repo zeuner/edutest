@@ -404,6 +404,125 @@ add_button(
 
 main_menu_row = main_menu_row + 2
 
+if rawget(
+    _G,
+    "pvpplus"
+) then
+    add_button(
+        main_menu_form,
+        "0," .. main_menu_row,
+        "2,1.5",
+        "edutest_pvp",
+        "PvP",
+        function(
+            player,
+            formname,
+            fields
+        )
+            local form = new_sub_form(
+                "EDUtest > PvP"
+            )
+            form.formspec = form.formspec .. student_dropdown(
+                "subject"
+            )
+            add_button(
+                form,
+                "0,3",
+                "2,1.5",
+                "edutest_do_enable",
+                "Enable",
+                function(
+                    player,
+                    formname,
+                    fields
+                )
+                    local name = player:get_player_name(
+                    )
+                    if false == check_field(
+                        name,
+                        formname,
+                        fields,
+                        "subject"
+                    ) then
+                        return false
+                    end
+                    if "All students" == fields[
+                        "subject"
+                    ] then
+                        edutest.for_all_students(
+                            function(
+                                player,
+                                name
+                            )
+                                pvpplus.pvp_enable(
+				    name
+				)
+                            end
+                        )
+                        return true
+                    end
+                    pvpplus.pvp_enable(
+                        fields[
+                            "subject"
+                        ]
+                    )
+                    return true
+                end
+            )
+            add_button(
+                form,
+                "3,3",
+                "2,1.5",
+                "edutest_do_disable",
+                "Disable",
+                function(
+                    player,
+                    formname,
+                    fields
+                )
+                    local name = player:get_player_name(
+                    )
+                    if false == check_field(
+                        name,
+                        formname,
+                        fields,
+                        "subject"
+                    ) then
+                        return false
+                    end
+                    if "All students" == fields[
+                        "subject"
+                    ] then
+                        edutest.for_all_students(
+                            function(
+                                player,
+                                name
+                            )
+                                pvpplus.pvp_disable(
+				    name
+				)
+                            end
+                        )
+                        return true
+                    end
+                    pvpplus.pvp_disable(
+                        fields[
+                            "subject"
+                        ]
+                    )
+                    return true
+                end
+            )
+            set_current_inventory_form(
+                player,
+                form
+            )
+            return true
+        end
+    )
+    main_menu_row = main_menu_row + 2
+end
+
 set_main_menu_button_handlers = function(
     player
 )
