@@ -1,3 +1,26 @@
+local field_debug_dump = function(
+    name,
+    formname,
+    fields
+)
+    print(
+        "EDUtest received player fields"
+    )
+    print(
+        "EDUtest player: " .. name
+    )
+    print(
+        "EDUtest form: " .. formname
+    )
+    for k,v in pairs(
+        fields
+    ) do
+        print(
+            "EDUtest field: " .. k .. " | " .. v
+        )
+    end
+end
+
 minetest.register_on_player_receive_fields(
     function(
         player,
@@ -40,6 +63,19 @@ minetest.register_on_player_receive_fields(
         elseif nil ~= fields[
             "edutest_do_freeze"
         ] then
+            if nil == fields[
+                "frozen"
+            ] then
+                print(
+                    "EDUtest unexpected condition: frozen field empty"
+                )
+                field_debug_dump(
+                    name,
+                    formname,
+                    fields
+                )
+                return false
+            end
             if "All students" == fields[
                 "frozen"
             ] then
@@ -63,6 +99,19 @@ minetest.register_on_player_receive_fields(
         elseif nil ~= fields[
             "edutest_do_unfreeze"
         ] then
+            if nil == fields[
+                "frozen"
+            ] then
+                print(
+                    "EDUtest unexpected condition: frozen field empty"
+                )
+                field_debug_dump(
+                    name,
+                    formname,
+                    fields
+                )
+                return false
+            end
             if "All students" == fields[
                 "frozen"
             ] then
