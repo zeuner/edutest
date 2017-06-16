@@ -88,6 +88,12 @@ minetest.register_on_player_receive_fields(
                     name,
                     "unfreeze subject"
                 )
+                minetest.chatcommands[
+                    "every_student"
+                ].func(
+                    name,
+                    "grant subject interact"
+                )
                 return true
             end
             minetest.chatcommands[
@@ -97,6 +103,14 @@ minetest.register_on_player_receive_fields(
                 fields[
                     "frozen"
                 ]
+            )
+            minetest.chatcommands[
+                "grant"
+            ].func(
+                name,
+                fields[
+                    "frozen"
+                ] .. " interact"
             )
             return true
         end
