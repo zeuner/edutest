@@ -61,7 +61,7 @@ local add_button = function(
     label,
     handler
 )
-    form.formspec = form.formspec .. "button[" .. position .. ";" .. size .. ";" field .. ";" .. label .. "]"
+    form.formspec = form.formspec .. "button[" .. position .. ";" .. size .. ";" .. field .. ";" .. label .. "]"
     form.handlers[
         field
     ] = handler
@@ -160,10 +160,9 @@ main_menu_form.formspec = main_menu_form.formspec .. "label[0,0;EDUtest]"
 
 local main_menu_row = 0.5
 
-if rawget(
-    _G,
+if nil ~= minetest.chatcommands[
     "freeze"
-) then
+] then
     add_button(
         main_menu_form,
         "0," .. main_menu_row,
@@ -288,13 +287,13 @@ if rawget(
             return true
         end
     )
-    main_menu_row = main_menu_row + 2
+    main_menu_row = main_menu_row + 1
 end
 
 add_button(
     main_menu_form,
     "0," .. main_menu_row,
-    "2,1.5",
+    "3,1.5",
     "edutest_creative",
     "Creative Mode",
     function(
@@ -402,7 +401,7 @@ add_button(
     end
 )
 
-main_menu_row = main_menu_row + 2
+main_menu_row = main_menu_row + 1
 
 if rawget(
     _G,
@@ -520,7 +519,7 @@ if rawget(
             return true
         end
     )
-    main_menu_row = main_menu_row + 2
+    main_menu_row = main_menu_row + 1
 end
 
 set_main_menu_button_handlers = function(
