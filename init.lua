@@ -136,9 +136,11 @@ local main_menu_form = new_form(
 
 main_menu_form.formspec = main_menu_form.formspec .. "label[0,0;EDUtest]"
 
+local main_menu_row = 0.5
+
 add_button(
     main_menu_form,
-    "0,0.5",
+    "0," .. main_menu_row,
     "2,1.5",
     "edutest_freeze",
     "Freeze",
@@ -270,6 +272,131 @@ add_button(
         return true
     end
 )
+
+main_menu_row = main_menu_row + 2
+
+add_button(
+    main_menu_form,
+    "0," .. main_menu_row,
+    "2,1.5",
+    "edutest_creative",
+    "Creative Mode",
+    function(
+        player,
+        formname,
+        fields
+    )
+        local form = new_sub_form(
+            "EDUtest > Creative Mode"
+        )
+        form.formspec = form.formspec .. student_dropdown(
+            "subject"
+        )
+        add_button(
+            form,
+            "0,3",
+            "2,1.5",
+            "edutest_do_grant",
+            "Enable",
+            function(
+                player,
+                formname,
+                fields
+            )
+                local name = player:get_player_name(
+                )
+                if nil == fields[
+                    "subject"
+                ] then
+                    print(
+                        "EDUtest unexpected condition: subject field empty"
+                    )
+                    field_debug_dump(
+                        name,
+                        formname,
+                        fields
+                    )
+                    return false
+                end
+                if "All students" == fields[
+                    "subject"
+                ] then
+                    minetest.chatcommands[
+                        "every_student"
+                    ].func(
+                        name,
+                        "grant subject creative"
+                    )
+                    return true
+                end
+                minetest.chatcommands[
+                    "grant"
+                ].func(
+                    name,
+                    fields[
+                        "subject"
+                    ] .. " creative"
+                )
+                return true
+            end
+        )
+        add_button(
+            form,
+            "3,3",
+            "2,1.5",
+            "edutest_do_revoke",
+            "Disable",
+            function(
+                player,
+                formname,
+                fields
+            )
+                local name = player:get_player_name(
+                )
+                if nil == fields[
+                    "subject"
+                ] then
+                    print(
+                        "EDUtest unexpected condition: subject field empty"
+                    )
+                    field_debug_dump(
+                        name,
+                        formname,
+                        fields
+                    )
+                    return false
+                end
+                if "All students" == fields[
+                    "subject"
+                ] then
+                    minetest.chatcommands[
+                        "every_student"
+                    ].func(
+                        name,
+                        "revoke subject creative"
+                    )
+                    return true
+                end
+                minetest.chatcommands[
+                    "revoke"
+                ].func(
+                    name,
+                    fields[
+                        "subject"
+                    ] .. " creative"
+                )
+                return true
+            end
+        )
+        set_current_inventory_form(
+            player,
+            form
+        )
+        return true
+    end
+)
+
+main_menu_row = main_menu_row + 2
 
 set_main_menu_button_handlers = function(
     player
