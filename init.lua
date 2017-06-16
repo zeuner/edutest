@@ -95,6 +95,22 @@ local set_current_inventory_form = function(
     )
 end
 
+local student_dropdown = function(
+    field
+)
+    local dropdown = "dropdown[0,2;2;" .. field .. ";All students"
+    edutest.for_all_students(
+        function(
+            player,
+            name
+        )
+            dropdown = dropdown .. "," .. name
+        end
+    )
+    dropdown = dropdown .. ";1]"
+    return dropdown
+end
+
 local button_handlers = {
 }
 
@@ -112,17 +128,9 @@ set_main_menu_button_handlers = function(
         local form = new_sub_form(
             "EDUtest > Freeze"
         )
-        local dropdown = "dropdown[0,2;2;frozen;All students"
-        edutest.for_all_students(
-            function(
-                player,
-                name
-            )
-                dropdown = dropdown .. "," .. name
-            end
-        )
-        dropdown = dropdown .. ";1]"
-        form.formspec = form.formspec .. dropdown
+        form.formspec = form.formspec .. student_dropdown(
+	    "frozen"
+	)
         add_button(
             form,
             "0,3",
