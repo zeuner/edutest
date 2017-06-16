@@ -45,6 +45,11 @@ local add_button = function(
     ] = handler
 end
 
+local button_handlers = {
+}
+
+local set_main_menu_button_handlers
+
 local new_sub_form = function(
     label
 )
@@ -63,9 +68,8 @@ local new_sub_form = function(
             formname,
             fields
         )
-            button_handlers = {
-            }
             set_main_menu_button_handlers(
+                player
             )
             unified_inventory.set_inventory_formspec(
                 player,
@@ -77,21 +81,35 @@ local new_sub_form = function(
     return constructed
 end
 
-local set_current_inventory_form = function(
+local set_current_form_handlers = function(
     player,
     form
 )
-    button_handlers = {
+    local name = player:get_player_name(
+    )
+    button_handlers[
+        name
+    ] = {
     }
     for k, v in pairs(
         form.handlers
     ) do
-        button_handlers = {
-        }
         button_handlers[
+            name
+        ][
             k
         ] = v
     end
+end
+
+local set_current_inventory_form = function(
+    player,
+    form
+)
+    set_current_form_handlers(
+        player,
+        form
+    )
     player:set_inventory_formspec(
         form.formspec
     )
@@ -113,16 +131,18 @@ local student_dropdown = function(
     return dropdown
 end
 
-local button_handlers = {
-}
-
-local set_main_menu_button_handlers
-
-set_main_menu_button_handlers = function(
+local main_menu_form = new_form(
 )
-    button_handlers[
-        "edutest_freeze"
-    ] = function(
+
+main_menu_form.formspec = main_menu_form.formspec .. "label[0,0;EDUtest]"
+
+add_button(
+    main_menu_form,
+    "0,0.5",
+    "2,1.5",
+    "edutest_freeze",
+    "Freeze",
+    function(
         player,
         formname,
         fields
@@ -131,8 +151,8 @@ set_main_menu_button_handlers = function(
             "EDUtest > Freeze"
         )
         form.formspec = form.formspec .. student_dropdown(
-	    "frozen"
-	)
+            "frozen"
+        )
         add_button(
             form,
             "0,3",
@@ -244,14 +264,30 @@ set_main_menu_button_handlers = function(
             end
         )
         set_current_inventory_form(
-	    player,
-	    form
+            player,
+            form
         )
         return true
     end
+)
+
+set_main_menu_button_handlers = function(
+    player
+)
+    set_current_form_handlers(
+        player,
+        main_menu_form
+    )
 end
 
-set_main_menu_button_handlers(
+minetest.register_on_joinplayer(
+    function(
+        player
+    )
+        set_main_menu_button_handlers(
+            player
+        )
+    end
 )
 
 minetest.register_on_player_receive_fields(
@@ -260,8 +296,12 @@ minetest.register_on_player_receive_fields(
         formname,
         fields
     )
+        local name = player:get_player_name(
+        )
         for k, v in pairs(
-            button_handlers
+            button_handlers[
+                name
+            ]
         ) do
             if nil ~= fields[
                 k
@@ -283,10 +323,8 @@ unified_inventory.register_page(
         get_formspec = function(
             player
         )
-            local formspec = "label[0,0;EDUtest]"
-            formspec = formspec .. "button[0,0.5;2,1.5;edutest_freeze;Freeze]"
             return {
-                formspec = formspec,
+                formspec = main_menu_form.formspec,
             }
         end,
     }
