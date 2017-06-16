@@ -81,6 +81,8 @@ local set_current_inventory_form = function(
     player,
     form
 )
+    button_handlers = {
+    }
     for k, v in pairs(
         form.handlers
     ) do
