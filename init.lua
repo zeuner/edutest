@@ -21,6 +21,28 @@ local field_debug_dump = function(
     end
 end
 
+local check_field = function(
+    name,
+    formname,
+    fields,
+    checked
+)
+    if nil == fields[
+        checked
+    ] then
+        print(
+            "EDUtest unexpected condition: " .. checked .. " field empty"
+        )
+        field_debug_dump(
+            name,
+            formname,
+            fields
+        )
+        return false
+    end
+    return true
+end
+
 local new_form = function(
 )
     local constructed = {
@@ -172,17 +194,12 @@ if rawget(
                 )
                     local name = player:get_player_name(
                     )
-                    if nil == fields[
+                    if false == check_field(
+                        name,
+                        formname,
+                        fields,
                         "frozen"
-                    ] then
-                        print(
-                            "EDUtest unexpected condition: frozen field empty"
-                        )
-                        field_debug_dump(
-                            name,
-                            formname,
-                            fields
-                        )
+                    ) then
                         return false
                     end
                     if "All students" == fields[
@@ -220,17 +237,12 @@ if rawget(
                 )
                     local name = player:get_player_name(
                     )
-                    if nil == fields[
+                    if false == check_field(
+                        name,
+                        formname,
+                        fields,
                         "frozen"
-                    ] then
-                        print(
-                            "EDUtest unexpected condition: frozen field empty"
-                        )
-                        field_debug_dump(
-                            name,
-                            formname,
-                            fields
-                        )
+                    ) then
                         return false
                     end
                     if "All students" == fields[
@@ -309,17 +321,12 @@ add_button(
             )
                 local name = player:get_player_name(
                 )
-                if nil == fields[
+                if false == check_field(
+                    name,
+                    formname,
+                    fields,
                     "subject"
-                ] then
-                    print(
-                        "EDUtest unexpected condition: subject field empty"
-                    )
-                    field_debug_dump(
-                        name,
-                        formname,
-                        fields
-                    )
+                ) then
                     return false
                 end
                 if "All students" == fields[
@@ -357,17 +364,12 @@ add_button(
             )
                 local name = player:get_player_name(
                 )
-                if nil == fields[
+                if false == check_field(
+                    name,
+                    formname,
+                    fields,
                     "subject"
-                ] then
-                    print(
-                        "EDUtest unexpected condition: subject field empty"
-                    )
-                    field_debug_dump(
-                        name,
-                        formname,
-                        fields
-                    )
+                ) then
                     return false
                 end
                 if "All students" == fields[
