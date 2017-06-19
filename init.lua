@@ -53,14 +53,30 @@ local new_form = function(
     return constructed
 end
 
+local string_width = function(
+    measured
+)
+    local proportional = math.ceil(
+        string.len(
+            measured
+        ) / 5
+    )
+    if 2 > proportional then
+        return 2
+    end
+    return proportional
+end
+
 local add_button = function(
     form,
     position,
-    size,
     field,
     label,
     handler
 )
+    local size = string_width(
+        label
+    ) .. ",1.5"
     form.formspec = form.formspec .. "button[" .. position .. ";" .. size .. ";" .. field .. ";" .. label .. "]"
     form.handlers[
         field
@@ -82,7 +98,6 @@ local new_sub_form = function(
     add_button(
         constructed,
         "0,0.5",
-        "2,1.5",
         "edutest_back",
         "Back",
         function(
@@ -140,7 +155,7 @@ end
 local student_dropdown = function(
     field
 )
-    local dropdown = "dropdown[0,2;2;" .. field .. ";All students"
+    local dropdown = "dropdown[0,2;3;" .. field .. ";All students"
     edutest.for_all_students(
         function(
             player,
@@ -166,7 +181,6 @@ if nil ~= minetest.chatcommands[
     add_button(
         main_menu_form,
         "0," .. main_menu_row,
-        "2,1.5",
         "edutest_freeze",
         "Freeze",
         function(
@@ -183,7 +197,6 @@ if nil ~= minetest.chatcommands[
             add_button(
                 form,
                 "0,3",
-                "2,1.5",
                 "edutest_do_freeze",
                 "Freeze",
                 function(
@@ -226,7 +239,6 @@ if nil ~= minetest.chatcommands[
             add_button(
                 form,
                 "3,3",
-                "2,1.5",
                 "edutest_do_unfreeze",
                 "Unfreeze",
                 function(
@@ -293,7 +305,6 @@ end
 add_button(
     main_menu_form,
     "0," .. main_menu_row,
-    "3,1.5",
     "edutest_creative",
     "Creative Mode",
     function(
@@ -310,7 +321,6 @@ add_button(
         add_button(
             form,
             "0,3",
-            "2,1.5",
             "edutest_do_grant",
             "Enable",
             function(
@@ -353,7 +363,6 @@ add_button(
         add_button(
             form,
             "3,3",
-            "2,1.5",
             "edutest_do_revoke",
             "Disable",
             function(
@@ -410,7 +419,6 @@ if rawget(
     add_button(
         main_menu_form,
         "0," .. main_menu_row,
-        "2,1.5",
         "edutest_pvp",
         "PvP",
         function(
@@ -427,7 +435,6 @@ if rawget(
             add_button(
                 form,
                 "0,3",
-                "2,1.5",
                 "edutest_do_enable",
                 "Enable",
                 function(
@@ -454,8 +461,8 @@ if rawget(
                                 name
                             )
                                 pvpplus.pvp_enable(
-				    name
-				)
+                                    name
+                                )
                             end
                         )
                         return true
@@ -471,7 +478,6 @@ if rawget(
             add_button(
                 form,
                 "3,3",
-                "2,1.5",
                 "edutest_do_disable",
                 "Disable",
                 function(
@@ -498,8 +504,8 @@ if rawget(
                                 name
                             )
                                 pvpplus.pvp_disable(
-				    name
-				)
+                                    name
+                                )
                             end
                         )
                         return true
