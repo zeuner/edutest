@@ -2,3 +2,4 @@ unified_inventory
 edutest_chatcommands
 freeze?
 pvpplus?
+intllib?

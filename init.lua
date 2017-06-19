@@ -88,6 +88,21 @@ local button_handlers = {
 
 local set_main_menu_button_handlers
 
+local S
+
+if minetest.get_modpath(
+    "intllib"
+) then
+    S = intllib.Getter(
+    )
+else
+    S = function(
+        translated
+    )
+        return translated
+    end
+end
+
 local new_sub_form = function(
     label
 )
@@ -99,7 +114,9 @@ local new_sub_form = function(
         constructed,
         "0,0.5",
         "edutest_back",
-        "Back",
+        S(
+	    "Back"
+	),
         function(
             player,
             formname,
@@ -152,7 +169,9 @@ local set_current_inventory_form = function(
     )
 end
 
-local all_students_entry = "All students"
+local all_students_entry = S(
+    "All students"
+)
 
 local student_dropdown = function(
     field
@@ -192,14 +211,18 @@ if nil ~= minetest.chatcommands[
         main_menu_form,
         "0," .. main_menu_row,
         "edutest_freeze",
-        "Freeze",
+        S(
+	    "Freeze"
+	),
         function(
             player,
             formname,
             fields
         )
             local form = new_sub_form(
-                "EDUtest > Freeze"
+                "EDUtest > " .. S(
+		    "Freeze"
+		)
             )
             form.formspec = form.formspec .. student_dropdown(
                 "frozen"
@@ -208,7 +231,9 @@ if nil ~= minetest.chatcommands[
                 form,
                 "0,3",
                 "edutest_do_freeze",
-                "Freeze",
+                S(
+		    "Freeze"
+		),
                 function(
                     player,
                     formname,
@@ -250,7 +275,9 @@ if nil ~= minetest.chatcommands[
                 form,
                 "3,3",
                 "edutest_do_unfreeze",
-                "Unfreeze",
+                S(
+		    "Unfreeze"
+		),
                 function(
                     player,
                     formname,
@@ -316,14 +343,18 @@ add_button(
     main_menu_form,
     "0," .. main_menu_row,
     "edutest_creative",
-    "Creative Mode",
+    S(
+        "Creative Mode"
+    ),
     function(
         player,
         formname,
         fields
     )
         local form = new_sub_form(
-            "EDUtest > Creative Mode"
+            "EDUtest > " .. S(
+	        "Creative Mode"
+	    )
         )
         form.formspec = form.formspec .. student_dropdown(
             "subject"
@@ -332,7 +363,9 @@ add_button(
             form,
             "0,3",
             "edutest_do_grant",
-            "Enable",
+            S(
+	        "Enable"
+	    ),
             function(
                 player,
                 formname,
@@ -374,7 +407,9 @@ add_button(
             form,
             "3,3",
             "edutest_do_revoke",
-            "Disable",
+            S(
+	        "Disable"
+	    ),
             function(
                 player,
                 formname,
@@ -430,14 +465,18 @@ if rawget(
         main_menu_form,
         "0," .. main_menu_row,
         "edutest_pvp",
-        "PvP",
+        S(
+	    "PvP"
+	),
         function(
             player,
             formname,
             fields
         )
             local form = new_sub_form(
-                "EDUtest > PvP"
+                "EDUtest > " .. S(
+		    "PvP"
+		)
             )
             form.formspec = form.formspec .. student_dropdown(
                 "subject"
@@ -446,7 +485,9 @@ if rawget(
                 form,
                 "0,3",
                 "edutest_do_enable",
-                "Enable",
+                S(
+		    "Enable"
+		),
                 function(
                     player,
                     formname,
@@ -489,7 +530,9 @@ if rawget(
                 form,
                 "3,3",
                 "edutest_do_disable",
-                "Disable",
+                S(
+		    "Disable"
+		),
                 function(
                     player,
                     formname,
@@ -602,6 +645,7 @@ unified_inventory.register_button(
     {
         type = "image",
         image = "edutest_gui.png",
+	tooltip = "EDUtest",
         condition = function(
             player
         )

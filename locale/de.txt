@@ -1,0 +1,8 @@
+### init.lua
+Back = Zurück
+Enable = Aktivieren
+Disable = Deaktivieren
+All students = Alle Schüler
+Creative Mode = Kreativmodus
+Freeze = Einfrieren
+Unfreeze = Auftauen
