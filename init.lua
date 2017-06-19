@@ -152,20 +152,30 @@ local set_current_inventory_form = function(
     )
 end
 
+local all_students_entry = "All students"
+
 local student_dropdown = function(
     field
 )
-    local dropdown = "dropdown[0,2;3;" .. field .. ";All students"
+    local entries = all_students_entry
+    local max_width = string_width(
+        entries
+    )
     edutest.for_all_students(
         function(
             player,
             name
         )
-            dropdown = dropdown .. "," .. name
+	    local width = string_width(
+	        name
+	    )
+	    if max_width < width then
+		max_width = width
+	    end
+            entries = entries .. "," .. name
         end
     )
-    dropdown = dropdown .. ";1]"
-    return dropdown
+    return "dropdown[0,2;" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
 end
 
 local main_menu_form = new_form(
@@ -214,7 +224,7 @@ if nil ~= minetest.chatcommands[
                     ) then
                         return false
                     end
-                    if "All students" == fields[
+                    if all_students_entry == fields[
                         "frozen"
                     ] then
                         minetest.chatcommands[
@@ -256,7 +266,7 @@ if nil ~= minetest.chatcommands[
                     ) then
                         return false
                     end
-                    if "All students" == fields[
+                    if all_students_entry == fields[
                         "frozen"
                     ] then
                         minetest.chatcommands[
@@ -338,7 +348,7 @@ add_button(
                 ) then
                     return false
                 end
-                if "All students" == fields[
+                if all_students_entry == fields[
                     "subject"
                 ] then
                     minetest.chatcommands[
@@ -380,7 +390,7 @@ add_button(
                 ) then
                     return false
                 end
-                if "All students" == fields[
+                if all_students_entry == fields[
                     "subject"
                 ] then
                     minetest.chatcommands[
@@ -452,7 +462,7 @@ if rawget(
                     ) then
                         return false
                     end
-                    if "All students" == fields[
+                    if all_students_entry == fields[
                         "subject"
                     ] then
                         edutest.for_all_students(
@@ -495,7 +505,7 @@ if rawget(
                     ) then
                         return false
                     end
-                    if "All students" == fields[
+                    if all_students_entry == fields[
                         "subject"
                     ] then
                         edutest.for_all_students(
