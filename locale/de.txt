@@ -4,5 +4,6 @@ Enable = Aktivieren
 Disable = Deaktivieren
 All students = Alle Schüler
 Creative Mode = Kreativmodus
+Fly Mode = Flugmodus
 Freeze = Einfrieren
 Unfreeze = Auftauen

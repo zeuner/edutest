@@ -699,6 +699,124 @@ add_button(
 
 main_menu_row = main_menu_row + 1
 
+add_button(
+    main_menu_form,
+    "0," .. main_menu_row,
+    "edutest_fly",
+    S(
+        "Fly Mode"
+    ),
+    function(
+        player,
+        formname,
+        fields
+    )
+        local form = new_sub_form(
+            "EDUtest > " .. S(
+	        "Fly Mode"
+	    )
+        )
+        form.formspec = form.formspec .. student_dropdown(
+            "subject"
+        )
+        add_button(
+            form,
+            "0,3",
+            "edutest_do_grant",
+            S(
+	        "Enable"
+	    ),
+            function(
+                player,
+                formname,
+                fields
+            )
+                local name = player:get_player_name(
+                )
+                if false == check_field(
+                    name,
+                    formname,
+                    fields,
+                    "subject"
+                ) then
+                    return false
+                end
+                if all_students_entry == fields[
+                    "subject"
+                ] then
+                    minetest.chatcommands[
+                        "every_student"
+                    ].func(
+                        name,
+                        "grant subject fly"
+                    )
+                    return true
+                end
+                minetest.chatcommands[
+                    "grant"
+                ].func(
+                    name,
+                    fields[
+                        "subject"
+                    ] .. " fly"
+                )
+                return true
+            end
+        )
+        add_button(
+            form,
+            "3,3",
+            "edutest_do_revoke",
+            S(
+	        "Disable"
+	    ),
+            function(
+                player,
+                formname,
+                fields
+            )
+                local name = player:get_player_name(
+                )
+                if false == check_field(
+                    name,
+                    formname,
+                    fields,
+                    "subject"
+                ) then
+                    return false
+                end
+                if all_students_entry == fields[
+                    "subject"
+                ] then
+                    minetest.chatcommands[
+                        "every_student"
+                    ].func(
+                        name,
+                        "revoke subject fly"
+                    )
+                    return true
+                end
+                minetest.chatcommands[
+                    "revoke"
+                ].func(
+                    name,
+                    fields[
+                        "subject"
+                    ] .. " fly"
+                )
+                return true
+            end
+        )
+        set_current_inventory_form(
+            player,
+            form
+        )
+        return true
+    end
+)
+
+main_menu_row = main_menu_row + 1
+
 set_main_menu_button_handlers = function(
     player
 )
