@@ -173,10 +173,14 @@ local all_students_entry = S(
     "All students"
 )
 
+local choose_student_entry = S(
+    "Choose student"
+)
+
 local basic_student_dropdown = function(
     field
 )
-    local entries = "Choose player"
+    local entries = choose_student_entry
     local max_width = string_width(
         entries
     )
@@ -523,7 +527,7 @@ add_button(
                 ) then
                     return false
                 end
-                if "Choose player" == fields[
+                if choose_student_entry == fields[
                     "subject"
                 ] then
                     return false

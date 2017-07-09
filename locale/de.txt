@@ -7,3 +7,4 @@ Creative Mode = Kreativmodus
 Fly Mode = Flugmodus
 Freeze = Einfrieren
 Unfreeze = Auftauen
+Choose student = Schüler auswählen
