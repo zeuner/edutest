@@ -8,3 +8,5 @@ Freeze =
 Unfreeze =
 Fly Mode =
 Choose student =
+Teleport to student =
+Teleport =

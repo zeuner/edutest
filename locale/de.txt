@@ -8,3 +8,5 @@ Fly Mode = Flugmodus
 Freeze = Einfrieren
 Unfreeze = Auftauen
 Choose student = Schüler auswählen
+Teleport to student = Zu einem Schüler teleportieren
+Teleport = Teleportieren

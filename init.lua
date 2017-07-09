@@ -490,7 +490,7 @@ add_button(
     "0," .. main_menu_row,
     "edutest_visit",
     S(
-        "Teleport to player"
+        "Teleport to student"
     ),
     function(
         player,
@@ -499,7 +499,7 @@ add_button(
     )
         local form = new_sub_form(
             "EDUtest > " .. S(
-	        "Teleport to player"
+	        "Teleport to student"
 	    )
         )
         form.formspec = form.formspec .. basic_student_dropdown(
