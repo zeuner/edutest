@@ -173,6 +173,30 @@ local all_students_entry = S(
     "All students"
 )
 
+local basic_student_dropdown = function(
+    field
+)
+    local entries = "Choose player"
+    local max_width = string_width(
+        entries
+    )
+    edutest.for_all_students(
+        function(
+            player,
+            name
+        )
+	    local width = string_width(
+	        name
+	    )
+	    if max_width < width then
+		max_width = width
+	    end
+            entries = entries .. "," .. name
+        end
+    )
+    return "dropdown[0,2;" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
+end
+
 local student_dropdown = function(
     field
 )
@@ -443,6 +467,74 @@ add_button(
                     fields[
                         "subject"
                     ] .. " creative"
+                )
+                return true
+            end
+        )
+        set_current_inventory_form(
+            player,
+            form
+        )
+        return true
+    end
+)
+
+main_menu_row = main_menu_row + 1
+
+add_button(
+    main_menu_form,
+    "0," .. main_menu_row,
+    "edutest_visit",
+    S(
+        "Teleport to player"
+    ),
+    function(
+        player,
+        formname,
+        fields
+    )
+        local form = new_sub_form(
+            "EDUtest > " .. S(
+	        "Teleport to player"
+	    )
+        )
+        form.formspec = form.formspec .. basic_student_dropdown(
+            "subject"
+        )
+        add_button(
+            form,
+            "0,3",
+            "edutest_do_teleport",
+            S(
+	        "Teleport"
+	    ),
+            function(
+                player,
+                formname,
+                fields
+            )
+                local name = player:get_player_name(
+                )
+                if false == check_field(
+                    name,
+                    formname,
+                    fields,
+                    "subject"
+                ) then
+                    return false
+                end
+                if "Choose player" == fields[
+                    "subject"
+                ] then
+                    return false
+                end
+                minetest.chatcommands[
+                    "teleport"
+                ].func(
+                    name,
+                    name .. " " .. fields[
+                        "subject"
+                    ]
                 )
                 return true
             end
