@@ -59,7 +59,7 @@ local string_width = function(
     local proportional = math.ceil(
         string.len(
             measured
-        ) / 5
+        ) / 7
     )
     if 2 > proportional then
         return 2
