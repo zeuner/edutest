@@ -67,17 +67,53 @@ local string_width = function(
     return proportional
 end
 
+local vertical_layout = function(
+)
+    return {
+        row = 0.5,
+        column = 0,
+        region_position = function(
+            self,
+            width,
+            height
+        )
+            local result = self.column .. "," .. self.row
+            self.row = self.row + 1
+            return result
+        end,
+    }
+end
+
+local static_layout = function(
+    position
+)
+    return {
+        region_position = function(
+            self,
+            width,
+            height
+        )
+            return position
+        end
+    }
+end
+
 local add_button = function(
     form,
-    position,
+    layout,
     field,
     label,
     handler
 )
-    local size = string_width(
+    local width = string_width(
         label
-    ) .. ",1.5"
-    form.formspec = form.formspec .. "button[" .. position .. ";" .. size .. ";" .. field .. ";" .. label .. "]"
+    )
+    local height = 1.5
+    local size = width .. "," .. height
+    form.formspec = form.formspec .. "button[" .. layout:region_position(
+        width,
+        height
+    ) .. ";" .. size .. ";" .. field .. ";" .. label .. "]"
     form.handlers[
         field
     ] = handler
@@ -112,11 +148,13 @@ local new_sub_form = function(
     constructed.formspec = constructed.formspec .. "label[0,0;" .. label .. "]"
     add_button(
         constructed,
-        "0,0.5",
+        static_layout(
+            "0,0.5"
+        ),
         "edutest_back",
         S(
-	    "Back"
-	),
+            "Back"
+        ),
         function(
             player,
             formname,
@@ -189,12 +227,12 @@ local basic_student_dropdown = function(
             player,
             name
         )
-	    local width = string_width(
-	        name
-	    )
-	    if max_width < width then
-		max_width = width
-	    end
+            local width = string_width(
+                name
+            )
+            if max_width < width then
+                max_width = width
+            end
             entries = entries .. "," .. name
         end
     )
@@ -213,35 +251,36 @@ local student_dropdown = function(
             player,
             name
         )
-	    local width = string_width(
-	        name
-	    )
-	    if max_width < width then
-		max_width = width
-	    end
+            local width = string_width(
+                name
+            )
+            if max_width < width then
+                max_width = width
+            end
             entries = entries .. "," .. name
         end
     )
     return "dropdown[0,2;" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
 end
 
+local main_layout = vertical_layout(
+)
+
 local main_menu_form = new_form(
 )
 
 main_menu_form.formspec = main_menu_form.formspec .. "label[0,0;EDUtest]"
-
-local main_menu_row = 0.5
 
 if nil ~= minetest.chatcommands[
     "freeze"
 ] then
     add_button(
         main_menu_form,
-        "0," .. main_menu_row,
+        main_layout,
         "edutest_freeze",
         S(
-	    "Freeze"
-	),
+            "Freeze"
+        ),
         function(
             player,
             formname,
@@ -249,19 +288,21 @@ if nil ~= minetest.chatcommands[
         )
             local form = new_sub_form(
                 "EDUtest > " .. S(
-		    "Freeze"
-		)
+                    "Freeze"
+                )
             )
             form.formspec = form.formspec .. student_dropdown(
                 "frozen"
             )
             add_button(
                 form,
-                "0,3",
+                static_layout(
+                    "0,3"
+                ),
                 "edutest_do_freeze",
                 S(
-		    "Freeze"
-		),
+                    "Freeze"
+                ),
                 function(
                     player,
                     formname,
@@ -301,11 +342,13 @@ if nil ~= minetest.chatcommands[
             )
             add_button(
                 form,
-                "3,3",
+                static_layout(
+                    "3,3"
+                ),
                 "edutest_do_unfreeze",
                 S(
-		    "Unfreeze"
-		),
+                    "Unfreeze"
+                ),
                 function(
                     player,
                     formname,
@@ -364,12 +407,11 @@ if nil ~= minetest.chatcommands[
             return true
         end
     )
-    main_menu_row = main_menu_row + 1
 end
 
 add_button(
     main_menu_form,
-    "0," .. main_menu_row,
+    main_layout,
     "edutest_creative",
     S(
         "Creative Mode"
@@ -381,19 +423,21 @@ add_button(
     )
         local form = new_sub_form(
             "EDUtest > " .. S(
-	        "Creative Mode"
-	    )
+                "Creative Mode"
+            )
         )
         form.formspec = form.formspec .. student_dropdown(
             "subject"
         )
         add_button(
             form,
-            "0,3",
+            static_layout(
+                "0,3"
+            ),
             "edutest_do_grant",
             S(
-	        "Enable"
-	    ),
+                "Enable"
+            ),
             function(
                 player,
                 formname,
@@ -433,11 +477,13 @@ add_button(
         )
         add_button(
             form,
-            "3,3",
+            static_layout(
+                "3,3"
+            ),
             "edutest_do_revoke",
             S(
-	        "Disable"
-	    ),
+                "Disable"
+            ),
             function(
                 player,
                 formname,
@@ -483,11 +529,9 @@ add_button(
     end
 )
 
-main_menu_row = main_menu_row + 1
-
 add_button(
     main_menu_form,
-    "0," .. main_menu_row,
+    main_layout,
     "edutest_visit",
     S(
         "Teleport to student"
@@ -499,19 +543,21 @@ add_button(
     )
         local form = new_sub_form(
             "EDUtest > " .. S(
-	        "Teleport to student"
-	    )
+                "Teleport to student"
+            )
         )
         form.formspec = form.formspec .. basic_student_dropdown(
             "subject"
         )
         add_button(
             form,
-            "0,3",
+            static_layout(
+                "0,3"
+            ),
             "edutest_do_teleport",
             S(
-	        "Teleport"
-	    ),
+                "Teleport"
+            ),
             function(
                 player,
                 formname,
@@ -551,19 +597,17 @@ add_button(
     end
 )
 
-main_menu_row = main_menu_row + 1
-
 if rawget(
     _G,
     "pvpplus"
 ) then
     add_button(
         main_menu_form,
-        "0," .. main_menu_row,
+        main_layout,
         "edutest_pvp",
         S(
-	    "PvP"
-	),
+            "PvP"
+        ),
         function(
             player,
             formname,
@@ -571,19 +615,21 @@ if rawget(
         )
             local form = new_sub_form(
                 "EDUtest > " .. S(
-		    "PvP"
-		)
+                    "PvP"
+                )
             )
             form.formspec = form.formspec .. student_dropdown(
                 "subject"
             )
             add_button(
                 form,
-                "0,3",
+                static_layout(
+                    "0,3"
+                ),
                 "edutest_do_enable",
                 S(
-		    "Enable"
-		),
+                    "Enable"
+                ),
                 function(
                     player,
                     formname,
@@ -624,11 +670,13 @@ if rawget(
             )
             add_button(
                 form,
-                "3,3",
+                static_layout(
+                    "3,3"
+                ),
                 "edutest_do_disable",
                 S(
-		    "Disable"
-		),
+                    "Disable"
+                ),
                 function(
                     player,
                     formname,
@@ -674,12 +722,11 @@ if rawget(
             return true
         end
     )
-    main_menu_row = main_menu_row + 1
 end
 
 add_button(
     main_menu_form,
-    "0," .. main_menu_row,
+    main_layout,
     "edutest_chat",
     S(
         "Messaging"
@@ -691,19 +738,21 @@ add_button(
     )
         local form = new_sub_form(
             "EDUtest > " .. S(
-	        "Messaging"
-	    )
+                "Messaging"
+            )
         )
         form.formspec = form.formspec .. student_dropdown(
             "subject"
         )
         add_button(
             form,
-            "0,3",
+            static_layout(
+                "0,3"
+            ),
             "edutest_do_grant",
             S(
-	        "Enable"
-	    ),
+                "Enable"
+            ),
             function(
                 player,
                 formname,
@@ -743,11 +792,13 @@ add_button(
         )
         add_button(
             form,
-            "3,3",
+            static_layout(
+                "3,3"
+            ),
             "edutest_do_revoke",
             S(
-	        "Disable"
-	    ),
+                "Disable"
+            ),
             function(
                 player,
                 formname,
@@ -793,11 +844,9 @@ add_button(
     end
 )
 
-main_menu_row = main_menu_row + 1
-
 add_button(
     main_menu_form,
-    "0," .. main_menu_row,
+    main_layout,
     "edutest_fly",
     S(
         "Fly Mode"
@@ -809,19 +858,21 @@ add_button(
     )
         local form = new_sub_form(
             "EDUtest > " .. S(
-	        "Fly Mode"
-	    )
+                "Fly Mode"
+            )
         )
         form.formspec = form.formspec .. student_dropdown(
             "subject"
         )
         add_button(
             form,
-            "0,3",
+            static_layout(
+                "0,3"
+            ),
             "edutest_do_grant",
             S(
-	        "Enable"
-	    ),
+                "Enable"
+            ),
             function(
                 player,
                 formname,
@@ -861,11 +912,13 @@ add_button(
         )
         add_button(
             form,
-            "3,3",
+            static_layout(
+                "3,3"
+            ),
             "edutest_do_revoke",
             S(
-	        "Disable"
-	    ),
+                "Disable"
+            ),
             function(
                 player,
                 formname,
@@ -977,7 +1030,7 @@ unified_inventory.register_button(
     {
         type = "image",
         image = "edutest_gui.png",
-	tooltip = "EDUtest",
+        tooltip = "EDUtest",
         condition = function(
             player
         )
