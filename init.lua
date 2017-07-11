@@ -964,8 +964,6 @@ add_button(
     end
 )
 
-main_menu_row = main_menu_row + 1
-
 set_main_menu_button_handlers = function(
     player
 )
