@@ -61,10 +61,7 @@ local string_width = function(
             measured
         ) / 7
     )
-    if 2 > proportional then
-        return 2
-    end
-    return proportional
+    return proportional + 1
 end
 
 local vertical_layout = function(
