@@ -5,6 +5,11 @@ in an educational context.
 
 This mod provides a GUI frontend for the educational staff.
 
+## setup
+
+In order to be able to access the GUI actions, the player needs to be
+granted the "teacher" privilege.
+
 ## dependencies
 
 * unified_inventory (https://github.com/minetest-technic/unified_inventory)
