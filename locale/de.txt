@@ -10,3 +10,7 @@ Unfreeze = Auftauen
 Choose student = Schüler auswählen
 Teleport to student = Zu einem Schüler teleportieren
 Teleport = Teleportieren
+Area protection = Gebietsschutz
+Set corner 1 = Setze Eckpunkt 1
+Set corner 2 = Setze Eckpunkt 2
+Punch a block to set the corner of the area = Schlage einen Block, um den Eckpunkt zu markieren

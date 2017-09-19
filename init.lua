@@ -961,6 +961,97 @@ add_button(
     end
 )
 
+if nil ~= minetest.chatcommands[
+    "area_pos"
+] then
+    add_button(
+        main_menu_form,
+        main_layout,
+        "edutest_freeze",
+        S(
+            "Area protection"
+        ),
+        function(
+            player,
+            formname,
+            fields
+        )
+            local form = new_sub_form(
+                "EDUtest > " .. S(
+                    "Area protection"
+                )
+            )
+            add_button(
+                form,
+                static_layout(
+                    "0,2"
+                ),
+                "edutest_set_area_protection_corner_1",
+                S(
+                    "Set corner 1"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields
+                )
+                    local name = player:get_player_name(
+                    )
+                    minetest.chatcommands[
+                        "area_pos"
+                    ].func(
+                        name,
+                        "set1"
+                    )
+                    minetest.chat_send_player(
+                        name,
+                        S(
+                            "Punch a block to set the corner of the area"
+                        )
+                    )
+                    return true
+                end
+            )
+            add_button(
+                form,
+                static_layout(
+                    "0,3"
+                ),
+                "edutest_set_area_protection_corner_2",
+                S(
+                    "Set corner 2"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields
+                )
+                    local name = player:get_player_name(
+                    )
+                    minetest.chatcommands[
+                        "area_pos"
+                    ].func(
+                        name,
+                        "set2"
+                    )
+                    minetest.chat_send_player(
+                        name,
+                        S(
+                            "Punch a block to set the corner of the area"
+                        )
+                    )
+                    return true
+                end
+            )
+            set_current_inventory_form(
+                player,
+                form
+            )
+            return true
+        end
+    )
+end
+
 set_main_menu_button_handlers = function(
     player
 )

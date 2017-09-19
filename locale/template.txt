@@ -10,3 +10,7 @@ Fly Mode =
 Choose student =
 Teleport to student =
 Teleport =
+Area protection =
+Set corner 1 =
+Set corner 2 =
+Punch a block to set the corner of the area =
