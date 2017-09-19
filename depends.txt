@@ -3,3 +3,4 @@ edutest_chatcommands
 freeze?
 pvpplus?
 intllib?
+areas?
