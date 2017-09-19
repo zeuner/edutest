@@ -81,6 +81,31 @@ local vertical_layout = function(
     }
 end
 
+local horizontal_layout = function(
+    max_width
+)
+    return {
+        max_width = max_width,
+        row = 0.5,
+        column = 0,
+        region_position = function(
+            self,
+            width,
+            height
+        )
+            local new_column = self.column + width
+            if max_width <= new_column then
+                self.column = 0
+                self.row = self.row + 1
+                new_column = self.column + width
+            end
+            local result = self.column .. "," .. self.row
+            self.column = new_column
+            return result
+        end,
+    }
+end
+
 local static_layout = function(
     position
 )
@@ -260,7 +285,8 @@ local student_dropdown = function(
     return "dropdown[0,2;" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
 end
 
-local main_layout = vertical_layout(
+local main_layout = horizontal_layout(
+    8
 )
 
 local main_menu_form = new_form(
