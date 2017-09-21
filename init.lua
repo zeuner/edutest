@@ -1078,6 +1078,34 @@ if nil ~= minetest.chatcommands[
     )
 end
 
+if nil ~= minetest.chatcommands[
+    "vanish"
+] then
+    add_button(
+        main_menu_form,
+        main_layout,
+        "edutest_vanish",
+        S(
+            "Toggle invisibility"
+        ),
+        function(
+            player,
+            formname,
+            fields
+        )
+            local name = player:get_player_name(
+            )
+            minetest.chatcommands[
+                "vanish"
+            ].func(
+                name,
+                ""
+            )
+            return true
+        end
+    )
+end
+
 set_main_menu_button_handlers = function(
     player
 )
