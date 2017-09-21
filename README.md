@@ -20,3 +20,5 @@ granted the "teacher" privilege.
 * freeze (https://github.com/PenguinDad/freeze)
 * pvpplus (https://github.com/MT-Eurythmia/pvpplus)
 * intllib (https://github.com/minetest-mods/intllib)
+* invis (https://github.com/octacian/minetest-mod-invis)
+* areas (https://github.com/ShadowNinja/areas)
