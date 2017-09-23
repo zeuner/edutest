@@ -294,6 +294,14 @@ local main_menu_form = new_form(
 
 main_menu_form.formspec = main_menu_form.formspec .. "label[0,0;EDUtest]"
 
+local teleport_command = "teleport"
+
+if nil ~= minetest.chatcommands[
+    "visitation"
+] then
+    teleport_command = "visitation"
+end
+
 if nil ~= minetest.chatcommands[
     "freeze"
 ] then
@@ -602,7 +610,7 @@ add_button(
                     return false
                 end
                 minetest.chatcommands[
-                    "teleport"
+                    teleport_command
                 ].func(
                     name,
                     name .. " " .. fields[
@@ -612,6 +620,35 @@ add_button(
                 return true
             end
         )
+        if nil ~= minetest.chatcommands[
+            "return"
+        ] then
+            add_button(
+                form,
+                static_layout(
+                    "3,3"
+                ),
+                "edutest_do_return",
+                S(
+                    "Return"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields
+                )
+                    local name = player:get_player_name(
+                    )
+                    minetest.chatcommands[
+                        "return"
+                    ].func(
+                        name,
+                        ""
+                    )
+                    return true
+                end
+            )
+	end
         set_current_inventory_form(
             player,
             form
