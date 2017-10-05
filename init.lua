@@ -496,7 +496,7 @@ add_button(
                             name,
                             "creative_hand subject"
                         )
-		    end
+                    end
                     minetest.chatcommands[
                         "every_student"
                     ].func(
@@ -516,7 +516,7 @@ add_button(
                             "subject"
                         ]
                     )
-		end
+                end
                 minetest.chatcommands[
                     "grant"
                 ].func(
@@ -564,7 +564,7 @@ add_button(
                             name,
                             "basic_hand subject"
                         )
-		    end
+                    end
                     minetest.chatcommands[
                         "every_student"
                     ].func(
@@ -584,7 +584,7 @@ add_button(
                             "subject"
                         ]
                     )
-		end
+                end
                 minetest.chatcommands[
                     "revoke"
                 ].func(
@@ -692,7 +692,131 @@ add_button(
                     return true
                 end
             )
-	end
+        end
+        set_current_inventory_form(
+            player,
+            form
+        )
+        return true
+    end
+)
+
+add_button(
+    main_menu_form,
+    main_layout,
+    "edutest_bring",
+    S(
+        "Bring student"
+    ),
+    function(
+        player,
+        formname,
+        fields
+    )
+        local form = new_sub_form(
+            "EDUtest > " .. S(
+                "Bring student"
+            )
+        )
+        form.formspec = form.formspec .. student_dropdown(
+            "subject"
+        )
+        add_button(
+            form,
+            static_layout(
+                "0,3"
+            ),
+            "edutest_do_bring",
+            S(
+                "Bring"
+            ),
+            function(
+                player,
+                formname,
+                fields
+            )
+                local name = player:get_player_name(
+                )
+                if false == check_field(
+                    name,
+                    formname,
+                    fields,
+                    "subject"
+                ) then
+                    return false
+                end
+                if all_students_entry == fields[
+                    "subject"
+                ] then
+                    minetest.chatcommands[
+                        "every_student"
+                    ].func(
+                        name,
+                        teleport_command .. " subject " .. name
+                    )
+                    return true
+                end
+                minetest.chatcommands[
+                    teleport_command
+                ].func(
+                    name,
+                    fields[
+                        "subject"
+                    ] .. " " .. name
+                )
+                return true
+            end
+        )
+        if nil ~= minetest.chatcommands[
+            "return"
+        ] then
+            add_button(
+                form,
+                static_layout(
+                    "3,3"
+                ),
+                "edutest_do_unbring",
+                S(
+                    "Return"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields
+                )
+                    local name = player:get_player_name(
+                    )
+                    if false == check_field(
+                        name,
+                        formname,
+                        fields,
+                        "subject"
+                    ) then
+                        return false
+                    end
+                    if all_students_entry == fields[
+                        "subject"
+                    ] then
+                        minetest.chatcommands[
+                            "every_student"
+                        ].func(
+                            name,
+                            "return subject"
+                        )
+                        return true
+                    end
+                    minetest.chatcommands[
+                        "return"
+                    ].func(
+                        name,
+                        fields[
+                            "subject"
+                        ]
+                    )
+                    return true
+                end
+            )
+        end
         set_current_inventory_form(
             player,
             form
