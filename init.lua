@@ -487,6 +487,16 @@ add_button(
                 if all_students_entry == fields[
                     "subject"
                 ] then
+                    if nil ~= minetest.chatcommands[
+                        "creative_hand"
+                    ] then
+                        minetest.chatcommands[
+                            "every_student"
+                        ].func(
+                            name,
+                            "creative_hand subject"
+                        )
+		    end
                     minetest.chatcommands[
                         "every_student"
                     ].func(
@@ -495,6 +505,18 @@ add_button(
                     )
                     return true
                 end
+                if nil ~= minetest.chatcommands[
+                    "creative_hand"
+                ] then
+                    minetest.chatcommands[
+                        "creative_hand"
+                    ].func(
+                        name,
+                        fields[
+                            "subject"
+                        ]
+                    )
+		end
                 minetest.chatcommands[
                     "grant"
                 ].func(
@@ -533,6 +555,16 @@ add_button(
                 if all_students_entry == fields[
                     "subject"
                 ] then
+                    if nil ~= minetest.chatcommands[
+                        "basic_hand"
+                    ] then
+                        minetest.chatcommands[
+                            "every_student"
+                        ].func(
+                            name,
+                            "basic_hand subject"
+                        )
+		    end
                     minetest.chatcommands[
                         "every_student"
                     ].func(
@@ -541,6 +573,18 @@ add_button(
                     )
                     return true
                 end
+                if nil ~= minetest.chatcommands[
+                    "basic_hand"
+                ] then
+                    minetest.chatcommands[
+                        "basic_hand"
+                    ].func(
+                        name,
+                        fields[
+                            "subject"
+                        ]
+                    )
+		end
                 minetest.chatcommands[
                     "revoke"
                 ].func(
