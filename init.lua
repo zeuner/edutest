@@ -1198,7 +1198,7 @@ if nil ~= minetest.chatcommands[
     add_button(
         main_menu_form,
         main_layout,
-        "edutest_freeze",
+        "edutest_areas",
         S(
             "Area protection"
         ),
