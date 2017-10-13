@@ -1228,18 +1228,29 @@ if nil ~= minetest.chatcommands[
                 )
                     local name = player:get_player_name(
                     )
-                    minetest.chatcommands[
-                        "area_pos"
-                    ].func(
-                        name,
-                        "set1"
-                    )
-                    minetest.chat_send_player(
-                        name,
-                        S(
-                            "Punch a block to set the corner of the area"
+                    if nil ~= minetest.chatcommands[
+                        "highlight_pos1"
+                    ] then
+                        minetest.chatcommands[
+                            "highlight_pos1"
+                        ].func(
+                            name,
+                            ""
                         )
-                    )
+                    else
+                        minetest.chatcommands[
+                            "area_pos"
+                        ].func(
+                            name,
+                            "set1"
+                        )
+                        minetest.chat_send_player(
+                            name,
+                            S(
+                                "Punch a block to set the corner of the area"
+                            )
+                        )
+                    end
                     return true
                 end
             )
@@ -1259,18 +1270,29 @@ if nil ~= minetest.chatcommands[
                 )
                     local name = player:get_player_name(
                     )
-                    minetest.chatcommands[
-                        "area_pos"
-                    ].func(
-                        name,
-                        "set2"
-                    )
-                    minetest.chat_send_player(
-                        name,
-                        S(
-                            "Punch a block to set the corner of the area"
+                    if nil ~= minetest.chatcommands[
+                        "highlight_pos2"
+                    ] then
+                        minetest.chatcommands[
+                            "highlight_pos2"
+                        ].func(
+                            name,
+                            ""
                         )
-                    )
+                    else
+                        minetest.chatcommands[
+                            "area_pos"
+                        ].func(
+                            name,
+                            "set2"
+                        )
+                        minetest.chat_send_player(
+                            name,
+                            S(
+                                "Punch a block to set the corner of the area"
+                            )
+                        )
+                    end
                     return true
                 end
             )
