@@ -88,6 +88,12 @@ local horizontal_layout = function(
         max_width = max_width,
         row = 0.5,
         column = 0,
+        line_break = function(
+            self
+        )
+            self.column = 0
+            self.row = self.row + 1
+        end,
         region_position = function(
             self,
             width,
@@ -144,8 +150,6 @@ end
 local button_handlers = {
 }
 
-local set_main_menu_button_handlers
-
 local S
 
 if minetest.get_modpath(
@@ -161,18 +165,41 @@ else
     end
 end
 
-local new_sub_form = function(
+local player_previous_inventory_page = {
+}
+
+local old_set_inventory_formspec = unified_inventory.set_inventory_formspec
+
+unified_inventory.set_inventory_formspec = function(
+    player,
+    page
+)
+    local name = player:get_player_name(
+    )
+    player_previous_inventory_page[
+        name
+    ] = page
+    old_set_inventory_formspec(
+        player,
+        page
+    )
+end
+
+
+local main_layout = horizontal_layout(
+    11
+)
+
+local new_main_form = function(
     label
 )
     local constructed = new_form(
     )
-    constructed.formspec = constructed.formspec .. "size[7,7]"
+    constructed.formspec = constructed.formspec .. "size[11,11]"
     constructed.formspec = constructed.formspec .. "label[0,0;" .. label .. "]"
     add_button(
         constructed,
-        static_layout(
-            "0,0.5"
-        ),
+        main_layout,
         "edutest_back",
         S(
             "Back"
@@ -182,15 +209,25 @@ local new_sub_form = function(
             formname,
             fields
         )
-            set_main_menu_button_handlers(
-                player
+            local name = player:get_player_name(
             )
+            button_handlers[
+                name
+            ] = nil
+            local old_page = player_previous_inventory_page[
+                name
+            ]
+            if not old_page then
+                old_page = "craft"
+            end
             unified_inventory.set_inventory_formspec(
                 player,
-                "edutest"
+                old_page
             )
             return true
         end
+    )
+    main_layout:line_break(
     )
     return constructed
 end
@@ -285,14 +322,40 @@ local student_dropdown = function(
     return "dropdown[0,2;" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
 end
 
-local main_layout = horizontal_layout(
-    8
+local main_menu_form = new_main_form(
+    "EDUtest"
 )
 
-local main_menu_form = new_form(
+local new_sub_form = function(
+    label
 )
-
-main_menu_form.formspec = main_menu_form.formspec .. "label[0,0;EDUtest]"
+    local constructed = new_form(
+    )
+    constructed.formspec = constructed.formspec .. "size[7,7]"
+    constructed.formspec = constructed.formspec .. "label[0,0;" .. label .. "]"
+    add_button(
+        constructed,
+        static_layout(
+            "0,0.5"
+        ),
+        "edutest_back",
+        S(
+            "Back"
+        ),
+        function(
+            player,
+            formname,
+            fields
+        )
+            set_current_inventory_form(
+                player,
+                main_menu_form
+            )
+            return true
+        end
+    )
+    return constructed
+end
 
 local teleport_command = "teleport"
 
@@ -1333,25 +1396,6 @@ if nil ~= minetest.chatcommands[
     )
 end
 
-set_main_menu_button_handlers = function(
-    player
-)
-    set_current_form_handlers(
-        player,
-        main_menu_form
-    )
-end
-
-minetest.register_on_joinplayer(
-    function(
-        player
-    )
-        set_main_menu_button_handlers(
-            player
-        )
-    end
-)
-
 minetest.register_on_player_receive_fields(
     function(
         player,
@@ -1360,10 +1404,14 @@ minetest.register_on_player_receive_fields(
     )
         local name = player:get_player_name(
         )
+        local handlers = button_handlers[
+            name
+        ]
+        if not handlers then
+            return false
+        end
         for k, v in pairs(
-            button_handlers[
-                name
-            ]
+            handlers
         ) do
             if nil ~= fields[
                 k
@@ -1398,6 +1446,14 @@ unified_inventory.register_button(
         type = "image",
         image = "edutest_gui.png",
         tooltip = "EDUtest",
+        action = function(
+            player
+        )
+            set_current_inventory_form(
+                player,
+                main_menu_form
+            )
+        end,
         condition = function(
             player
         )
