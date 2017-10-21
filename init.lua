@@ -1,3 +1,15 @@
+local die
+
+local fatal = function(
+    message
+)
+    print(
+        "FATAL: " .. message
+    )
+    die(
+    )
+end
+
 local field_debug_dump = function(
     name,
     formname,
@@ -70,6 +82,13 @@ local add_button = function(
         width,
         height
     ) .. ";" .. size .. ";" .. field .. ";" .. label .. "]"
+    if form.handlers[
+        field
+    ] then
+        fatal(
+            "duplicate UI handler: " .. field
+        )
+    end
     form.handlers[
         field
     ] = handler
