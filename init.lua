@@ -43,9 +43,31 @@ local check_field = function(
     return true
 end
 
+local add_button = function(
+    form,
+    layout,
+    field,
+    label,
+    handler
+)
+    local width = string_width(
+        label
+    )
+    local height = 1.5
+    local size = width .. "," .. height
+    form.formspec = form.formspec .. "button[" .. layout:region_position(
+        width,
+        height
+    ) .. ";" .. size .. ";" .. field .. ";" .. label .. "]"
+    form.handlers[
+        field
+    ] = handler
+end
+
 local new_form = function(
 )
     local constructed = {
+        add_button = add_button,
         formspec = "",
         handlers = {
         },
@@ -126,27 +148,6 @@ local static_layout = function(
     }
 end
 
-local add_button = function(
-    form,
-    layout,
-    field,
-    label,
-    handler
-)
-    local width = string_width(
-        label
-    )
-    local height = 1.5
-    local size = width .. "," .. height
-    form.formspec = form.formspec .. "button[" .. layout:region_position(
-        width,
-        height
-    ) .. ";" .. size .. ";" .. field .. ";" .. label .. "]"
-    form.handlers[
-        field
-    ] = handler
-end
-
 local button_handlers = {
 }
 
@@ -197,8 +198,7 @@ local new_main_form = function(
     )
     constructed.formspec = constructed.formspec .. "size[11,11]"
     constructed.formspec = constructed.formspec .. "label[0,0;" .. label .. "]"
-    add_button(
-        constructed,
+    constructed:add_button(
         main_layout,
         "edutest_back",
         S(
@@ -333,8 +333,7 @@ local new_sub_form = function(
     )
     constructed.formspec = constructed.formspec .. "size[7,7]"
     constructed.formspec = constructed.formspec .. "label[0,0;" .. label .. "]"
-    add_button(
-        constructed,
+    constructed:add_button(
         static_layout(
             "0,0.5"
         ),
@@ -368,8 +367,7 @@ end
 if nil ~= minetest.chatcommands[
     "freeze"
 ] then
-    add_button(
-        main_menu_form,
+    main_menu_form:add_button(
         main_layout,
         "edutest_freeze",
         S(
@@ -388,8 +386,7 @@ if nil ~= minetest.chatcommands[
             form.formspec = form.formspec .. student_dropdown(
                 "frozen"
             )
-            add_button(
-                form,
+            form:add_button(
                 static_layout(
                     "0,3"
                 ),
@@ -434,8 +431,7 @@ if nil ~= minetest.chatcommands[
                     return true
                 end
             )
-            add_button(
-                form,
+            form:add_button(
                 static_layout(
                     "3,3"
                 ),
@@ -503,8 +499,7 @@ if nil ~= minetest.chatcommands[
     )
 end
 
-add_button(
-    main_menu_form,
+main_menu_form:add_button(
     main_layout,
     "edutest_creative",
     S(
@@ -523,8 +518,7 @@ add_button(
         form.formspec = form.formspec .. student_dropdown(
             "subject"
         )
-        add_button(
-            form,
+        form:add_button(
             static_layout(
                 "0,3"
             ),
@@ -591,8 +585,7 @@ add_button(
                 return true
             end
         )
-        add_button(
-            form,
+        form:add_button(
             static_layout(
                 "3,3"
             ),
@@ -667,8 +660,7 @@ add_button(
     end
 )
 
-add_button(
-    main_menu_form,
+main_menu_form:add_button(
     main_layout,
     "edutest_visit",
     S(
@@ -687,8 +679,7 @@ add_button(
         form.formspec = form.formspec .. basic_student_dropdown(
             "subject"
         )
-        add_button(
-            form,
+        form:add_button(
             static_layout(
                 "0,3"
             ),
@@ -730,8 +721,7 @@ add_button(
         if nil ~= minetest.chatcommands[
             "return"
         ] then
-            add_button(
-                form,
+            form:add_button(
                 static_layout(
                     "3,3"
                 ),
@@ -764,8 +754,7 @@ add_button(
     end
 )
 
-add_button(
-    main_menu_form,
+main_menu_form:add_button(
     main_layout,
     "edutest_bring",
     S(
@@ -784,8 +773,7 @@ add_button(
         form.formspec = form.formspec .. student_dropdown(
             "subject"
         )
-        add_button(
-            form,
+        form:add_button(
             static_layout(
                 "0,3"
             ),
@@ -833,8 +821,7 @@ add_button(
         if nil ~= minetest.chatcommands[
             "return"
         ] then
-            add_button(
-                form,
+            form:add_button(
                 static_layout(
                     "3,3"
                 ),
@@ -892,8 +879,7 @@ if rawget(
     _G,
     "pvpplus"
 ) then
-    add_button(
-        main_menu_form,
+    main_menu_form:add_button(
         main_layout,
         "edutest_pvp",
         S(
@@ -912,8 +898,7 @@ if rawget(
             form.formspec = form.formspec .. student_dropdown(
                 "subject"
             )
-            add_button(
-                form,
+            form:add_button(
                 static_layout(
                     "0,3"
                 ),
@@ -959,8 +944,7 @@ if rawget(
                     return true
                 end
             )
-            add_button(
-                form,
+            form:add_button(
                 static_layout(
                     "3,3"
                 ),
@@ -1015,8 +999,7 @@ if rawget(
     )
 end
 
-add_button(
-    main_menu_form,
+main_menu_form:add_button(
     main_layout,
     "edutest_chat",
     S(
@@ -1035,8 +1018,7 @@ add_button(
         form.formspec = form.formspec .. student_dropdown(
             "subject"
         )
-        add_button(
-            form,
+        form:add_button(
             static_layout(
                 "0,3"
             ),
@@ -1081,8 +1063,7 @@ add_button(
                 return true
             end
         )
-        add_button(
-            form,
+        form:add_button(
             static_layout(
                 "3,3"
             ),
@@ -1135,8 +1116,7 @@ add_button(
     end
 )
 
-add_button(
-    main_menu_form,
+main_menu_form:add_button(
     main_layout,
     "edutest_fly",
     S(
@@ -1155,8 +1135,7 @@ add_button(
         form.formspec = form.formspec .. student_dropdown(
             "subject"
         )
-        add_button(
-            form,
+        form:add_button(
             static_layout(
                 "0,3"
             ),
@@ -1201,8 +1180,7 @@ add_button(
                 return true
             end
         )
-        add_button(
-            form,
+        form:add_button(
             static_layout(
                 "3,3"
             ),
@@ -1258,8 +1236,7 @@ add_button(
 if nil ~= minetest.chatcommands[
     "area_pos"
 ] then
-    add_button(
-        main_menu_form,
+    main_menu_form:add_button(
         main_layout,
         "edutest_areas",
         S(
@@ -1275,8 +1252,7 @@ if nil ~= minetest.chatcommands[
                     "Area protection"
                 )
             )
-            add_button(
-                form,
+            form:add_button(
                 static_layout(
                     "0,2"
                 ),
@@ -1317,8 +1293,7 @@ if nil ~= minetest.chatcommands[
                     return true
                 end
             )
-            add_button(
-                form,
+            form:add_button(
                 static_layout(
                     "0,3"
                 ),
@@ -1371,8 +1346,7 @@ end
 if nil ~= minetest.chatcommands[
     "vanish"
 ] then
-    add_button(
-        main_menu_form,
+    main_menu_form:add_button(
         main_layout,
         "edutest_vanish",
         S(
