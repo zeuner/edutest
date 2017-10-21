@@ -98,6 +98,13 @@ local new_form = function(
 )
     local constructed = {
         add_button = add_button,
+        last_field = 0,
+        new_field = function(
+            self
+        )
+            self.last_field = self.last_field + 1
+            return "field_" .. self.last_field
+        end,
         formspec = "",
         handlers = {
         },
@@ -219,7 +226,8 @@ local new_main_form = function(
     constructed.formspec = constructed.formspec .. "label[0,0;" .. label .. "]"
     constructed:add_button(
         main_layout,
-        "edutest_back",
+        constructed:new_field(
+	),
         S(
             "Back"
         ),
@@ -356,7 +364,8 @@ local new_sub_form = function(
         static_layout(
             "0,0.5"
         ),
-        "edutest_back",
+        constructed:new_field(
+	),
         S(
             "Back"
         ),
@@ -388,7 +397,8 @@ if nil ~= minetest.chatcommands[
 ] then
     main_menu_form:add_button(
         main_layout,
-        "edutest_freeze",
+        main_menu_form:new_field(
+	),
         S(
             "Freeze"
         ),
@@ -409,7 +419,8 @@ if nil ~= minetest.chatcommands[
                 static_layout(
                     "0,3"
                 ),
-                "edutest_do_freeze",
+                form:new_field(
+	        ),
                 S(
                     "Freeze"
                 ),
@@ -454,7 +465,8 @@ if nil ~= minetest.chatcommands[
                 static_layout(
                     "3,3"
                 ),
-                "edutest_do_unfreeze",
+                form:new_field(
+	        ),
                 S(
                     "Unfreeze"
                 ),
@@ -520,6 +532,8 @@ end
 
 main_menu_form:add_button(
     main_layout,
+    main_menu_form:new_field(
+    ),
     "edutest_creative",
     S(
         "Creative Mode"
@@ -541,7 +555,8 @@ main_menu_form:add_button(
             static_layout(
                 "0,3"
             ),
-            "edutest_do_grant",
+            form:new_field(
+            ),
             S(
                 "Enable"
             ),
@@ -608,7 +623,8 @@ main_menu_form:add_button(
             static_layout(
                 "3,3"
             ),
-            "edutest_do_revoke",
+            form:new_field(
+            ),
             S(
                 "Disable"
             ),
@@ -681,7 +697,8 @@ main_menu_form:add_button(
 
 main_menu_form:add_button(
     main_layout,
-    "edutest_visit",
+    main_menu_form:new_field(
+    ),
     S(
         "Teleport to student"
     ),
@@ -702,7 +719,8 @@ main_menu_form:add_button(
             static_layout(
                 "0,3"
             ),
-            "edutest_do_teleport",
+            form:new_field(
+            ),
             S(
                 "Teleport"
             ),
@@ -744,7 +762,8 @@ main_menu_form:add_button(
                 static_layout(
                     "3,3"
                 ),
-                "edutest_do_return",
+                form:new_field(
+                ),
                 S(
                     "Return"
                 ),
@@ -775,7 +794,8 @@ main_menu_form:add_button(
 
 main_menu_form:add_button(
     main_layout,
-    "edutest_bring",
+    main_menu_form:new_field(
+    ),
     S(
         "Bring student"
     ),
@@ -796,7 +816,8 @@ main_menu_form:add_button(
             static_layout(
                 "0,3"
             ),
-            "edutest_do_bring",
+            form:new_field(
+            ),
             S(
                 "Bring"
             ),
@@ -844,7 +865,8 @@ main_menu_form:add_button(
                 static_layout(
                     "3,3"
                 ),
-                "edutest_do_unbring",
+                form:new_field(
+                ),
                 S(
                     "Return"
                 ),
@@ -900,7 +922,8 @@ if rawget(
 ) then
     main_menu_form:add_button(
         main_layout,
-        "edutest_pvp",
+        main_menu_form:new_field(
+        ),
         S(
             "PvP"
         ),
@@ -921,7 +944,8 @@ if rawget(
                 static_layout(
                     "0,3"
                 ),
-                "edutest_do_enable",
+                form:new_field(
+                ),
                 S(
                     "Enable"
                 ),
@@ -967,7 +991,8 @@ if rawget(
                 static_layout(
                     "3,3"
                 ),
-                "edutest_do_disable",
+                form:new_field(
+                ),
                 S(
                     "Disable"
                 ),
@@ -1020,7 +1045,8 @@ end
 
 main_menu_form:add_button(
     main_layout,
-    "edutest_chat",
+    main_menu_form:new_field(
+    ),
     S(
         "Messaging"
     ),
@@ -1041,7 +1067,8 @@ main_menu_form:add_button(
             static_layout(
                 "0,3"
             ),
-            "edutest_do_grant",
+            form:new_field(
+            ),
             S(
                 "Enable"
             ),
@@ -1086,7 +1113,8 @@ main_menu_form:add_button(
             static_layout(
                 "3,3"
             ),
-            "edutest_do_revoke",
+            form:new_field(
+            ),
             S(
                 "Disable"
             ),
@@ -1137,7 +1165,8 @@ main_menu_form:add_button(
 
 main_menu_form:add_button(
     main_layout,
-    "edutest_fly",
+    main_menu_form:new_field(
+    ),
     S(
         "Fly Mode"
     ),
@@ -1158,7 +1187,8 @@ main_menu_form:add_button(
             static_layout(
                 "0,3"
             ),
-            "edutest_do_grant",
+            form:new_field(
+            ),
             S(
                 "Enable"
             ),
@@ -1203,7 +1233,8 @@ main_menu_form:add_button(
             static_layout(
                 "3,3"
             ),
-            "edutest_do_revoke",
+            form:new_field(
+            ),
             S(
                 "Disable"
             ),
@@ -1257,7 +1288,8 @@ if nil ~= minetest.chatcommands[
 ] then
     main_menu_form:add_button(
         main_layout,
-        "edutest_areas",
+        main_menu_form:new_field(
+        ),
         S(
             "Area protection"
         ),
@@ -1275,7 +1307,8 @@ if nil ~= minetest.chatcommands[
                 static_layout(
                     "0,2"
                 ),
-                "edutest_set_area_protection_corner_1",
+                form:new_field(
+                ),
                 S(
                     "Set corner 1"
                 ),
@@ -1316,7 +1349,8 @@ if nil ~= minetest.chatcommands[
                 static_layout(
                     "0,3"
                 ),
-                "edutest_set_area_protection_corner_2",
+                form:new_field(
+                ),
                 S(
                     "Set corner 2"
                 ),
@@ -1367,7 +1401,8 @@ if nil ~= minetest.chatcommands[
 ] then
     main_menu_form:add_button(
         main_layout,
-        "edutest_vanish",
+        main_menu_form:new_field(
+        ),
         S(
             "Toggle invisibility"
         ),
