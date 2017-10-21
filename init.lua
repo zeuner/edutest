@@ -43,6 +43,17 @@ local check_field = function(
     return true
 end
 
+local string_width = function(
+    measured
+)
+    local proportional = math.ceil(
+        string.len(
+            measured
+        ) / 7
+    )
+    return proportional + 1
+end
+
 local add_button = function(
     form,
     layout,
@@ -73,17 +84,6 @@ local new_form = function(
         },
     }
     return constructed
-end
-
-local string_width = function(
-    measured
-)
-    local proportional = math.ceil(
-        string.len(
-            measured
-        ) / 7
-    )
-    return proportional + 1
 end
 
 local vertical_layout = function(
