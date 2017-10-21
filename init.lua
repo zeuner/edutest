@@ -103,7 +103,7 @@ local new_form = function(
             self
         )
             self.last_field = self.last_field + 1
-            return "field_" .. self.last_field
+            return "edutest_field_" .. self.last_field
         end,
         formspec = "",
         handlers = {
@@ -534,7 +534,6 @@ main_menu_form:add_button(
     main_layout,
     main_menu_form:new_field(
     ),
-    "edutest_creative",
     S(
         "Creative Mode"
     ),
