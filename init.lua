@@ -66,6 +66,31 @@ local string_width = function(
     return proportional + 1
 end
 
+local add_input = function(
+    form,
+    formspec,
+    field
+)
+    form.formspec = form.formspec .. formspec
+    if form.handlers[
+        field
+    ] then
+        fatal(
+            "duplicate UI handler: " .. field
+        )
+    end
+    if form.inputs[
+        field
+    ] then
+        fatal(
+            "duplicate UI handler: " .. field
+        )
+    end
+    form.inputs[
+        field
+    ] = formspec
+end
+
 local add_button = function(
     form,
     layout,
@@ -89,6 +114,13 @@ local add_button = function(
             "duplicate UI handler: " .. field
         )
     end
+    if form.inputs[
+        field
+    ] then
+        fatal(
+            "duplicate UI handler: " .. field
+        )
+    end
     form.handlers[
         field
     ] = handler
@@ -98,6 +130,7 @@ local new_form = function(
 )
     local constructed = {
         add_button = add_button,
+        add_input = add_input,
         last_field = 0,
         new_field = function(
             self
@@ -107,6 +140,8 @@ local new_form = function(
         end,
         formspec = "",
         handlers = {
+        },
+        inputs = {
         },
     }
     return constructed
@@ -412,9 +447,12 @@ if nil ~= minetest.chatcommands[
                     "Freeze"
                 )
             )
-            form.formspec = form.formspec .. student_dropdown(
-                "frozen"
-            )
+	    form:add_input(
+                student_dropdown(
+                    "frozen"
+                ),
+		"frozen"
+	    )
             form:add_button(
                 static_layout(
                     "0,3"
@@ -547,9 +585,12 @@ main_menu_form:add_button(
                 "Creative Mode"
             )
         )
-        form.formspec = form.formspec .. student_dropdown(
-            "subject"
-        )
+	form:add_input(
+            student_dropdown(
+                "subject"
+            ),
+	    "subject"
+	)
         form:add_button(
             static_layout(
                 "0,3"
@@ -711,9 +752,12 @@ main_menu_form:add_button(
                 "Teleport to student"
             )
         )
-        form.formspec = form.formspec .. basic_student_dropdown(
-            "subject"
-        )
+	form:add_input(
+            basic_student_dropdown(
+                "subject"
+            ),
+	    "subject"
+	)
         form:add_button(
             static_layout(
                 "0,3"
@@ -808,9 +852,12 @@ main_menu_form:add_button(
                 "Bring student"
             )
         )
-        form.formspec = form.formspec .. student_dropdown(
-            "subject"
-        )
+	form:add_input(
+            student_dropdown(
+                "subject"
+            ),
+	    "subject"
+	)
         form:add_button(
             static_layout(
                 "0,3"
@@ -936,8 +983,11 @@ if rawget(
                     "PvP"
                 )
             )
-            form.formspec = form.formspec .. student_dropdown(
-                "subject"
+	    form:add_input(
+                student_dropdown(
+                    "subject"
+                ),
+		"subject"
             )
             form:add_button(
                 static_layout(
@@ -1059,9 +1109,12 @@ main_menu_form:add_button(
                 "Messaging"
             )
         )
-        form.formspec = form.formspec .. student_dropdown(
-            "subject"
-        )
+	form:add_input(
+            student_dropdown(
+                "subject"
+            ),
+	    "subject"
+	)
         form:add_button(
             static_layout(
                 "0,3"
@@ -1179,9 +1232,12 @@ main_menu_form:add_button(
                 "Fly Mode"
             )
         )
-        form.formspec = form.formspec .. student_dropdown(
-            "subject"
-        )
+	form:add_input(
+            student_dropdown(
+                "subject"
+            ),
+	    "subject"
+	)
         form:add_button(
             static_layout(
                 "0,3"
