@@ -262,7 +262,7 @@ local new_main_form = function(
     constructed:add_button(
         main_layout,
         constructed:new_field(
-	),
+        ),
         S(
             "Back"
         ),
@@ -400,7 +400,7 @@ local new_sub_form = function(
             "0,0.5"
         ),
         constructed:new_field(
-	),
+        ),
         S(
             "Back"
         ),
@@ -433,7 +433,7 @@ if nil ~= minetest.chatcommands[
     main_menu_form:add_button(
         main_layout,
         main_menu_form:new_field(
-	),
+        ),
         S(
             "Freeze"
         ),
@@ -447,18 +447,20 @@ if nil ~= minetest.chatcommands[
                     "Freeze"
                 )
             )
-	    form:add_input(
+            local frozen = form:new_field(
+            )
+            form:add_input(
                 student_dropdown(
-                    "frozen"
+                    frozen
                 ),
-		"frozen"
-	    )
+                frozen
+            )
             form:add_button(
                 static_layout(
                     "0,3"
                 ),
                 form:new_field(
-	        ),
+                ),
                 S(
                     "Freeze"
                 ),
@@ -473,12 +475,12 @@ if nil ~= minetest.chatcommands[
                         name,
                         formname,
                         fields,
-                        "frozen"
+                        frozen
                     ) then
                         return false
                     end
                     if all_students_entry == fields[
-                        "frozen"
+                        frozen
                     ] then
                         minetest.chatcommands[
                             "every_student"
@@ -493,7 +495,7 @@ if nil ~= minetest.chatcommands[
                     ].func(
                         name,
                         fields[
-                            "frozen"
+                            frozen
                         ]
                     )
                     return true
@@ -504,7 +506,7 @@ if nil ~= minetest.chatcommands[
                     "3,3"
                 ),
                 form:new_field(
-	        ),
+                ),
                 S(
                     "Unfreeze"
                 ),
@@ -519,12 +521,12 @@ if nil ~= minetest.chatcommands[
                         name,
                         formname,
                         fields,
-                        "frozen"
+                        frozen
                     ) then
                         return false
                     end
                     if all_students_entry == fields[
-                        "frozen"
+                        frozen
                     ] then
                         minetest.chatcommands[
                             "every_student"
@@ -545,7 +547,7 @@ if nil ~= minetest.chatcommands[
                     ].func(
                         name,
                         fields[
-                            "frozen"
+                            frozen
                         ]
                     )
                     minetest.chatcommands[
@@ -553,7 +555,7 @@ if nil ~= minetest.chatcommands[
                     ].func(
                         name,
                         fields[
-                            "frozen"
+                            frozen
                         ] .. " interact"
                     )
                     return true
@@ -585,12 +587,14 @@ main_menu_form:add_button(
                 "Creative Mode"
             )
         )
-	form:add_input(
+        local subject = form:new_field(
+        )
+        form:add_input(
             student_dropdown(
-                "subject"
+                subject
             ),
-	    "subject"
-	)
+            subject
+        )
         form:add_button(
             static_layout(
                 "0,3"
@@ -611,12 +615,12 @@ main_menu_form:add_button(
                     name,
                     formname,
                     fields,
-                    "subject"
+                    subject
                 ) then
                     return false
                 end
                 if all_students_entry == fields[
-                    "subject"
+                    subject
                 ] then
                     if nil ~= minetest.chatcommands[
                         "creative_hand"
@@ -644,7 +648,7 @@ main_menu_form:add_button(
                     ].func(
                         name,
                         fields[
-                            "subject"
+                            subject
                         ]
                     )
                 end
@@ -653,7 +657,7 @@ main_menu_form:add_button(
                 ].func(
                     name,
                     fields[
-                        "subject"
+                        subject
                     ] .. " creative"
                 )
                 return true
@@ -679,12 +683,12 @@ main_menu_form:add_button(
                     name,
                     formname,
                     fields,
-                    "subject"
+                    subject
                 ) then
                     return false
                 end
                 if all_students_entry == fields[
-                    "subject"
+                    subject
                 ] then
                     if nil ~= minetest.chatcommands[
                         "basic_hand"
@@ -712,7 +716,7 @@ main_menu_form:add_button(
                     ].func(
                         name,
                         fields[
-                            "subject"
+                            subject
                         ]
                     )
                 end
@@ -721,7 +725,7 @@ main_menu_form:add_button(
                 ].func(
                     name,
                     fields[
-                        "subject"
+                        subject
                     ] .. " creative"
                 )
                 return true
@@ -752,12 +756,14 @@ main_menu_form:add_button(
                 "Teleport to student"
             )
         )
-	form:add_input(
+        local subject = form:new_field(
+        )
+        form:add_input(
             basic_student_dropdown(
-                "subject"
+                subject
             ),
-	    "subject"
-	)
+            subject
+        )
         form:add_button(
             static_layout(
                 "0,3"
@@ -778,12 +784,12 @@ main_menu_form:add_button(
                     name,
                     formname,
                     fields,
-                    "subject"
+                    subject
                 ) then
                     return false
                 end
                 if choose_student_entry == fields[
-                    "subject"
+                    subject
                 ] then
                     return false
                 end
@@ -792,7 +798,7 @@ main_menu_form:add_button(
                 ].func(
                     name,
                     name .. " " .. fields[
-                        "subject"
+                        subject
                     ]
                 )
                 return true
@@ -852,12 +858,14 @@ main_menu_form:add_button(
                 "Bring student"
             )
         )
-	form:add_input(
+        local subject = form:new_field(
+        )
+        form:add_input(
             student_dropdown(
-                "subject"
+                subject
             ),
-	    "subject"
-	)
+            subject
+        )
         form:add_button(
             static_layout(
                 "0,3"
@@ -878,12 +886,12 @@ main_menu_form:add_button(
                     name,
                     formname,
                     fields,
-                    "subject"
+                    subject
                 ) then
                     return false
                 end
                 if all_students_entry == fields[
-                    "subject"
+                    subject
                 ] then
                     minetest.chatcommands[
                         "every_student"
@@ -898,7 +906,7 @@ main_menu_form:add_button(
                 ].func(
                     name,
                     fields[
-                        "subject"
+                        subject
                     ] .. " " .. name
                 )
                 return true
@@ -927,12 +935,12 @@ main_menu_form:add_button(
                         name,
                         formname,
                         fields,
-                        "subject"
+                        subject
                     ) then
                         return false
                     end
                     if all_students_entry == fields[
-                        "subject"
+                        subject
                     ] then
                         minetest.chatcommands[
                             "every_student"
@@ -947,7 +955,7 @@ main_menu_form:add_button(
                     ].func(
                         name,
                         fields[
-                            "subject"
+                            subject
                         ]
                     )
                     return true
@@ -983,11 +991,13 @@ if rawget(
                     "PvP"
                 )
             )
-	    form:add_input(
+            local subject = form:new_field(
+            )
+            form:add_input(
                 student_dropdown(
-                    "subject"
+                    subject
                 ),
-		"subject"
+                subject
             )
             form:add_button(
                 static_layout(
@@ -1009,12 +1019,12 @@ if rawget(
                         name,
                         formname,
                         fields,
-                        "subject"
+                        subject
                     ) then
                         return false
                     end
                     if all_students_entry == fields[
-                        "subject"
+                        subject
                     ] then
                         edutest.for_all_students(
                             function(
@@ -1030,7 +1040,7 @@ if rawget(
                     end
                     pvpplus.pvp_enable(
                         fields[
-                            "subject"
+                            subject
                         ]
                     )
                     return true
@@ -1056,12 +1066,12 @@ if rawget(
                         name,
                         formname,
                         fields,
-                        "subject"
+                        subject
                     ) then
                         return false
                     end
                     if all_students_entry == fields[
-                        "subject"
+                        subject
                     ] then
                         edutest.for_all_students(
                             function(
@@ -1077,7 +1087,7 @@ if rawget(
                     end
                     pvpplus.pvp_disable(
                         fields[
-                            "subject"
+                            subject
                         ]
                     )
                     return true
@@ -1109,12 +1119,14 @@ main_menu_form:add_button(
                 "Messaging"
             )
         )
-	form:add_input(
+        local subject = form:new_field(
+        )
+        form:add_input(
             student_dropdown(
-                "subject"
+                subject
             ),
-	    "subject"
-	)
+            subject
+        )
         form:add_button(
             static_layout(
                 "0,3"
@@ -1135,12 +1147,12 @@ main_menu_form:add_button(
                     name,
                     formname,
                     fields,
-                    "subject"
+                    subject
                 ) then
                     return false
                 end
                 if all_students_entry == fields[
-                    "subject"
+                    subject
                 ] then
                     minetest.chatcommands[
                         "every_student"
@@ -1155,7 +1167,7 @@ main_menu_form:add_button(
                 ].func(
                     name,
                     fields[
-                        "subject"
+                        subject
                     ] .. " shout"
                 )
                 return true
@@ -1181,12 +1193,12 @@ main_menu_form:add_button(
                     name,
                     formname,
                     fields,
-                    "subject"
+                    subject
                 ) then
                     return false
                 end
                 if all_students_entry == fields[
-                    "subject"
+                    subject
                 ] then
                     minetest.chatcommands[
                         "every_student"
@@ -1201,7 +1213,7 @@ main_menu_form:add_button(
                 ].func(
                     name,
                     fields[
-                        "subject"
+                        subject
                     ] .. " shout"
                 )
                 return true
@@ -1232,12 +1244,14 @@ main_menu_form:add_button(
                 "Fly Mode"
             )
         )
-	form:add_input(
+        local subject = form:new_field(
+        )
+        form:add_input(
             student_dropdown(
-                "subject"
+                subject
             ),
-	    "subject"
-	)
+            subject
+        )
         form:add_button(
             static_layout(
                 "0,3"
@@ -1258,12 +1272,12 @@ main_menu_form:add_button(
                     name,
                     formname,
                     fields,
-                    "subject"
+                    subject
                 ) then
                     return false
                 end
                 if all_students_entry == fields[
-                    "subject"
+                    subject
                 ] then
                     minetest.chatcommands[
                         "every_student"
@@ -1278,7 +1292,7 @@ main_menu_form:add_button(
                 ].func(
                     name,
                     fields[
-                        "subject"
+                        subject
                     ] .. " fly"
                 )
                 return true
@@ -1304,12 +1318,12 @@ main_menu_form:add_button(
                     name,
                     formname,
                     fields,
-                    "subject"
+                    subject
                 ) then
                     return false
                 end
                 if all_students_entry == fields[
-                    "subject"
+                    subject
                 ] then
                     minetest.chatcommands[
                         "every_student"
@@ -1324,7 +1338,7 @@ main_menu_form:add_button(
                 ].func(
                     name,
                     fields[
-                        "subject"
+                        subject
                     ] .. " fly"
                 )
                 return true
