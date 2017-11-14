@@ -814,7 +814,7 @@ main_menu_form:add_button(
                 form:new_field(
                 ),
                 S(
-                    "Return"
+                    "Previous position"
                 ),
                 function(
                     player,
@@ -922,7 +922,7 @@ main_menu_form:add_button(
                 form:new_field(
                 ),
                 S(
-                    "Return"
+                    "Previous position"
                 ),
                 function(
                     player,
