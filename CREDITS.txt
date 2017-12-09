@@ -1,0 +1,10 @@
+These people (in alphabetical order) provided me with valuable insights on
+what would improve the usability of Minetest in educational contexts:
+
+* Heiko Idensen
+* Birgit Lachner
+* Andrzej Pieńkowski
+* Alan Stewart
+
+Many thanks to go to every one of them, as this project would probably be
+way less useful without them.
