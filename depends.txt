@@ -1,4 +1,5 @@
-unified_inventory
+unified_inventory?
+sfinv?
 edutest_chatcommands
 freeze?
 pvpplus?
