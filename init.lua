@@ -246,19 +246,21 @@ if rawget(
     )
         local name = player:get_player_name(
         )
-        player_previous_inventory_page[
-            name
-        ] = page
         old_set_inventory_formspec(
             player,
             page
         )
+        player_previous_inventory_page[
+            name
+        ] = page
     end
     set_inventory_page = unified_inventory.set_inventory_formspec
 elseif rawget(
     _G,
     "sfinv"
 ) then
+    local player_current_inventory_page = {
+    }
     default_inventory_page = "sfinv:crafting"
     local old_set_page = sfinv.set_page
     sfinv.set_page = function(
@@ -267,21 +269,33 @@ elseif rawget(
     )
         local name = player:get_player_name(
         )
-        player_previous_inventory_page[
-            name
-        ] = page
         old_set_page(
             player,
             page
         )
+        player_previous_inventory_page[
+            name
+        ] = player_current_inventory_page[
+            name
+        ]
+        player_current_inventory_page[
+            name
+        ] = page
     end
-    set_inventory_page = sfinv.set_page
+    set_inventory_page = function(
+        player,
+        page
+    )
+        sfinv.set_page(
+            player,
+            page
+        )
+    end
 else
     fatal(
         "unsupported inventory implementation"
     )
 end
-
 
 local main_layout = horizontal_layout(
     11
@@ -1528,35 +1542,37 @@ if nil ~= minetest.chatcommands[
     )
 end
 
-minetest.register_on_player_receive_fields(
-    function(
-        player,
-        formname,
-        fields
+local on_player_receive_fields = function(
+    player,
+    formname,
+    fields
+)
+    local name = player:get_player_name(
     )
-        local name = player:get_player_name(
-        )
-        local handlers = button_handlers[
-            name
-        ]
-        if not handlers then
-            return false
-        end
-        for k, v in pairs(
-            handlers
-        ) do
-            if nil ~= fields[
-                k
-            ] then
-                return v(
-                    player,
-                    formname,
-                    fields
-                )
-            end
-        end
+    local handlers = button_handlers[
+        name
+    ]
+    if not handlers then
         return false
     end
+    for k, v in pairs(
+        handlers
+    ) do
+        if nil ~= fields[
+            k
+        ] then
+            return v(
+                player,
+                formname,
+                fields
+            )
+        end
+    end
+    return false
+end
+
+minetest.register_on_player_receive_fields(
+    on_player_receive_fields
 )
 
 if rawget(
@@ -1584,6 +1600,8 @@ if rawget(
             action = function(
                 player
             )
+                local name = player:get_player_name(
+                )
                 set_current_inventory_form(
                     player,
                     main_menu_form
@@ -1609,31 +1627,28 @@ elseif rawget(
     sfinv.register_page(
         "edutest:edu",
         {
-	    title = "EDU",
-	    get = function(
-	        self,
-		player,
-		context
+            title = "EDU",
+            get = function(
+                self,
+                player,
+                context
             )
-	        fatal(
-		    "tabbed display not supported"
-		)
+                return main_menu_form.formspec
             end,
-            on_player_receive_fields = function(
-	        self,
-		player,
-		context,
-		fields
+            on_enter = function(
+                self,
+                player,
+                context
             )
-                set_current_inventory_form(
+                set_current_form_handlers(
                     player,
                     main_menu_form
                 )
             end,
             is_in_nav = function(
-	        self,
-		player,
-		context
+                self,
+                player,
+                context
             )
                 return minetest.check_player_privs(
                     player,
