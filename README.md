@@ -5,6 +5,10 @@ in an educational context.
 
 This mod provides a GUI frontend for the educational staff.
 
+## forum
+
+https://forum.minetest.net/viewtopic.php?f=9&t=18988
+
 ## setup
 
 In order to be able to access the GUI actions, the player needs to be
