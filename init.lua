@@ -230,23 +230,72 @@ end
 local player_previous_inventory_page = {
 }
 
-local old_set_inventory_formspec = unified_inventory.set_inventory_formspec
+local default_inventory_page
 
-unified_inventory.set_inventory_formspec = function(
-    player,
-    page
-)
-    local name = player:get_player_name(
-    )
-    player_previous_inventory_page[
-        name
-    ] = page
-    old_set_inventory_formspec(
+local set_inventory_page
+
+if rawget(
+    _G,
+    "unified_inventory"
+) then
+    default_inventory_page = "craft"
+    local old_set_inventory_formspec = unified_inventory.set_inventory_formspec
+    unified_inventory.set_inventory_formspec = function(
         player,
         page
     )
+        local name = player:get_player_name(
+        )
+        old_set_inventory_formspec(
+            player,
+            page
+        )
+        player_previous_inventory_page[
+            name
+        ] = page
+    end
+    set_inventory_page = unified_inventory.set_inventory_formspec
+elseif rawget(
+    _G,
+    "sfinv"
+) then
+    local player_current_inventory_page = {
+    }
+    default_inventory_page = "sfinv:crafting"
+    local old_set_page = sfinv.set_page
+    sfinv.set_page = function(
+        player,
+        page
+    )
+        local name = player:get_player_name(
+        )
+        old_set_page(
+            player,
+            page
+        )
+        player_previous_inventory_page[
+            name
+        ] = player_current_inventory_page[
+            name
+        ]
+        player_current_inventory_page[
+            name
+        ] = page
+    end
+    set_inventory_page = function(
+        player,
+        page
+    )
+        sfinv.set_page(
+            player,
+            page
+        )
+    end
+else
+    fatal(
+        "unsupported inventory implementation"
+    )
 end
-
 
 local main_layout = horizontal_layout(
     11
@@ -280,9 +329,9 @@ local new_main_form = function(
                 name
             ]
             if not old_page then
-                old_page = "craft"
+                old_page = default_inventory_page
             end
-            unified_inventory.set_inventory_formspec(
+            set_inventory_page(
                 player,
                 old_page
             )
@@ -1493,74 +1542,121 @@ if nil ~= minetest.chatcommands[
     )
 end
 
-minetest.register_on_player_receive_fields(
-    function(
-        player,
-        formname,
-        fields
+local on_player_receive_fields = function(
+    player,
+    formname,
+    fields
+)
+    local name = player:get_player_name(
     )
-        local name = player:get_player_name(
-        )
-        local handlers = button_handlers[
-            name
-        ]
-        if not handlers then
-            return false
-        end
-        for k, v in pairs(
-            handlers
-        ) do
-            if nil ~= fields[
-                k
-            ] then
-                return v(
-                    player,
-                    formname,
-                    fields
-                )
-            end
-        end
+    local handlers = button_handlers[
+        name
+    ]
+    if not handlers then
         return false
     end
-)
-
-unified_inventory.register_page(
-    "edutest",
-    {
-        get_formspec = function(
-            player
-        )
-            return {
-                formspec = main_menu_form.formspec,
-            }
-        end,
-    }
-)
-
-unified_inventory.register_button(
-    "edutest",
-    {
-        type = "image",
-        image = "edutest_gui.png",
-        tooltip = "EDUtest",
-        action = function(
-            player
-        )
-            set_current_inventory_form(
+    for k, v in pairs(
+        handlers
+    ) do
+        if nil ~= fields[
+            k
+        ] then
+            return v(
                 player,
-                main_menu_form
+                formname,
+                fields
             )
-        end,
-        condition = function(
-            player
-        )
-            return minetest.check_player_privs(
-                player:get_player_name(
-                ),
-                {
-                    teacher = true,
-                }
-            )
-        end,
-    }
+        end
+    end
+    return false
+end
+
+minetest.register_on_player_receive_fields(
+    on_player_receive_fields
 )
+
+if rawget(
+    _G,
+    "unified_inventory"
+) then
+    unified_inventory.register_page(
+        "edutest",
+        {
+            get_formspec = function(
+                player
+            )
+                return {
+                    formspec = main_menu_form.formspec,
+                }
+            end,
+        }
+    )
+    unified_inventory.register_button(
+        "edutest",
+        {
+            type = "image",
+            image = "edutest_gui.png",
+            tooltip = "EDUtest",
+            action = function(
+                player
+            )
+                local name = player:get_player_name(
+                )
+                set_current_inventory_form(
+                    player,
+                    main_menu_form
+                )
+            end,
+            condition = function(
+                player
+            )
+                return minetest.check_player_privs(
+                    player:get_player_name(
+                    ),
+                    {
+                        teacher = true,
+                    }
+                )
+            end,
+        }
+    )
+elseif rawget(
+    _G,
+    "sfinv"
+) then
+    sfinv.register_page(
+        "edutest:edu",
+        {
+            title = "EDU",
+            get = function(
+                self,
+                player,
+                context
+            )
+                return main_menu_form.formspec
+            end,
+            on_enter = function(
+                self,
+                player,
+                context
+            )
+                set_current_form_handlers(
+                    player,
+                    main_menu_form
+                )
+            end,
+            is_in_nav = function(
+                self,
+                player,
+                context
+            )
+                return minetest.check_player_privs(
+                    player,
+                    {
+                        teacher = true,
+                    }
+                )
+            end,
+        }
+    )
+end

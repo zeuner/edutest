@@ -16,11 +16,11 @@ granted the "teacher" privilege.
 
 ## dependencies
 
-* unified_inventory (https://github.com/minetest-technic/unified_inventory)
 * edutest_chatcommands (https://github.com/zeuner/edutest-chatcommands)
 
 ## optional dependencies
 
+* unified_inventory (https://github.com/minetest-technic/unified_inventory)
 * freeze (https://github.com/PenguinDad/freeze)
 * pvpplus (https://github.com/MT-Eurythmia/pvpplus)
 * intllib (https://github.com/minetest-mods/intllib)
