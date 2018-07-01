@@ -18,3 +18,5 @@ Punch a block to set the corner of the area =
 Toggle invisibility =
 Previous position =
 Bring =
+Adjust area =
+Close =

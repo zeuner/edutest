@@ -468,6 +468,60 @@ local new_sub_form = function(
     return constructed
 end
 
+local highlight_form = new_form(
+)
+
+if nil ~= edutest.set_highlight_marker_click_handler then
+    highlight_form.formspec = highlight_form.formspec .. "size[7,7]"
+    highlight_form.formspec = highlight_form.formspec .. "label[0,0;" .. S(
+        "Adjust area"
+    ) .. "]"
+    highlight_form:add_button(
+        static_layout(
+            "0,0.5"
+        ),
+        highlight_form:new_field(
+        ),
+        S(
+            "Close"
+        ),
+        function(
+            player,
+            formname,
+            fields
+        )
+            local name = player:get_player_name(
+            )
+            minetest.close_formspec(
+                name,
+                "highlight"
+            )
+            return true
+        end
+    )
+    edutest.set_highlight_marker_click_handler(
+        function(
+            self,
+            clicker
+        )
+            print(
+                "EDUtest DEBUG: rightclick custom handler called"
+            )
+            set_current_form_handlers(
+                clicker,
+                highlight_form
+            )
+            local name = clicker:get_player_name(
+            )
+            minetest.show_formspec(
+                name,
+                "highlight",
+                highlight_form.formspec
+            )
+        end
+    )
+end
+
 local teleport_command = "teleport"
 
 if nil ~= minetest.chatcommands[
@@ -1548,6 +1602,11 @@ local on_player_receive_fields = function(
     fields
 )
     local name = player:get_player_name(
+    )
+    field_debug_dump(
+        name,
+        formname,
+        fields
     )
     local handlers = button_handlers[
         name
