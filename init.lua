@@ -499,14 +499,57 @@ if nil ~= edutest.set_highlight_marker_click_handler then
             return true
         end
     )
+    highlight_form:add_button(
+        static_layout(
+            "2,3"
+        ),
+        highlight_form:new_field(
+        ),
+        "+",
+        function(
+            player,
+            formname,
+            fields
+        )
+            local name = player:get_player_name(
+            )
+            edutest.adapt_highlighted_area(
+                name,
+                "y",
+                "max",
+                1
+            )
+            return true
+        end
+    )
+    highlight_form:add_button(
+        static_layout(
+            "2,5"
+        ),
+        highlight_form:new_field(
+        ),
+        "-",
+        function(
+            player,
+            formname,
+            fields
+        )
+            local name = player:get_player_name(
+            )
+            edutest.adapt_highlighted_area(
+                name,
+                "y",
+                "max",
+                -1
+            )
+            return true
+        end
+    )
     edutest.set_highlight_marker_click_handler(
         function(
             self,
             clicker
         )
-            print(
-                "EDUtest DEBUG: rightclick custom handler called"
-            )
             set_current_form_handlers(
                 clicker,
                 highlight_form
@@ -1602,11 +1645,6 @@ local on_player_receive_fields = function(
     fields
 )
     local name = player:get_player_name(
-    )
-    field_debug_dump(
-        name,
-        formname,
-        fields
     )
     local handlers = button_handlers[
         name
