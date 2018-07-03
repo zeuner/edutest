@@ -385,6 +385,10 @@ local choose_student_entry = S(
     "Choose student"
 )
 
+local group_prefix = S(
+    "Group"
+) .. " "
+
 local basic_student_dropdown = function(
     field
 )
@@ -416,6 +420,23 @@ local student_dropdown = function(
     local max_width = string_width(
         entries
     )
+    if edutest.for_all_groups then
+        edutest.for_all_groups(
+            function(
+                name,
+                members
+            )
+                local entry = group_prefix .. name
+                local width = string_width(
+                    entry
+                )
+                if max_width < width then
+                    max_width = width
+                end
+                entries = entries .. "," .. entry
+            end
+        )
+    end
     edutest.for_all_students(
         function(
             player,
@@ -528,6 +549,31 @@ if nil ~= minetest.chatcommands[
                     ) then
                         return false
                     end
+                    if group_prefix == string.sub(
+                        fields[
+                            frozen
+                        ],
+                        1,
+                        string.len(
+                            group_prefix
+                        )
+                    ) then
+                        local group_name = string.sub(
+                            fields[
+                                frozen
+                            ],
+                            string.len(
+                                group_prefix
+                            ) + 1
+                        )
+                        minetest.chatcommands[
+                            "every_member"
+                        ].func(
+                            name,
+                            group_name .. " freeze subject"
+                        )
+                        return true
+                    end
                     if all_students_entry == fields[
                         frozen
                     ] then
@@ -573,6 +619,31 @@ if nil ~= minetest.chatcommands[
                         frozen
                     ) then
                         return false
+                    end
+                    if group_prefix == string.sub(
+                        fields[
+                            frozen
+                        ],
+                        1,
+                        string.len(
+                            group_prefix
+                        )
+                    ) then
+                        local group_name = string.sub(
+                            fields[
+                                frozen
+                            ],
+                            string.len(
+                                group_prefix
+                            ) + 1
+                        )
+                        minetest.chatcommands[
+                            "every_member"
+                        ].func(
+                            name,
+                            group_name .. " unfreeze subject"
+                        )
+                        return true
                     end
                     if all_students_entry == fields[
                         frozen
@@ -668,6 +739,41 @@ main_menu_form:add_button(
                 ) then
                     return false
                 end
+                if group_prefix == string.sub(
+                    fields[
+                        subject
+                    ],
+                    1,
+                    string.len(
+                        group_prefix
+                    )
+                ) then
+                    local group_name = string.sub(
+                        fields[
+                            subject
+                        ],
+                        string.len(
+                            group_prefix
+                        ) + 1
+                    )
+                    if nil ~= minetest.chatcommands[
+                        "creative_hand"
+                    ] then
+                        minetest.chatcommands[
+                            "every_member"
+                        ].func(
+                            name,
+                            group_name .. " creative_hand subject"
+                        )
+                    end
+                    minetest.chatcommands[
+                        "every_member"
+                    ].func(
+                        name,
+                        group_name .. " grant subject creative"
+                    )
+                    return true
+                end
                 if all_students_entry == fields[
                     subject
                 ] then
@@ -735,6 +841,41 @@ main_menu_form:add_button(
                     subject
                 ) then
                     return false
+                end
+                if group_prefix == string.sub(
+                    fields[
+                        subject
+                    ],
+                    1,
+                    string.len(
+                        group_prefix
+                    )
+                ) then
+                    local group_name = string.sub(
+                        fields[
+                            subject
+                        ],
+                        string.len(
+                            group_prefix
+                        ) + 1
+                    )
+                    if nil ~= minetest.chatcommands[
+                        "creative_hand"
+                    ] then
+                        minetest.chatcommands[
+                            "every_member"
+                        ].func(
+                            name,
+                            group_name .. " basic_hand subject"
+                        )
+                    end
+                    minetest.chatcommands[
+                        "every_member"
+                    ].func(
+                        name,
+                        group_name .. " revoke subject creative"
+                    )
+                    return true
                 end
                 if all_students_entry == fields[
                     subject
@@ -939,6 +1080,31 @@ main_menu_form:add_button(
                 ) then
                     return false
                 end
+                if group_prefix == string.sub(
+                    fields[
+                        subject
+                    ],
+                    1,
+                    string.len(
+                        group_prefix
+                    )
+                ) then
+                    local group_name = string.sub(
+                        fields[
+                            subject
+                        ],
+                        string.len(
+                            group_prefix
+                        ) + 1
+                    )
+                    minetest.chatcommands[
+                        "every_member"
+                    ].func(
+                        name,
+                        group_name .. " " .. teleport_command .. " subject " .. name
+                    )
+                    return true
+                end
                 if all_students_entry == fields[
                     subject
                 ] then
@@ -987,6 +1153,31 @@ main_menu_form:add_button(
                         subject
                     ) then
                         return false
+                    end
+                    if group_prefix == string.sub(
+                        fields[
+                            subject
+                        ],
+                        1,
+                        string.len(
+                            group_prefix
+                        )
+                    ) then
+                        local group_name = string.sub(
+                            fields[
+                                subject
+                            ],
+                            string.len(
+                                group_prefix
+                            ) + 1
+                        )
+                        minetest.chatcommands[
+                            "every_member"
+                        ].func(
+                            name,
+                            group_name .. " return subject"
+                        )
+                        return true
                     end
                     if all_students_entry == fields[
                         subject
@@ -1072,6 +1263,36 @@ if rawget(
                     ) then
                         return false
                     end
+                    if group_prefix == string.sub(
+                        fields[
+                            subject
+                        ],
+                        1,
+                        string.len(
+                            group_prefix
+                        )
+                    ) then
+                        local group_name = string.sub(
+                            fields[
+                                subject
+                            ],
+                            string.len(
+                                group_prefix
+                            ) + 1
+                        )
+                        edutest.for_all_members(
+                            group_name,
+                            function(
+                                player,
+                                name
+                            )
+                                pvpplus.pvp_enable(
+                                    name
+                                )
+                            end
+                        )
+                        return true
+                    end
                     if all_students_entry == fields[
                         subject
                     ] then
@@ -1118,6 +1339,36 @@ if rawget(
                         subject
                     ) then
                         return false
+                    end
+                    if group_prefix == string.sub(
+                        fields[
+                            subject
+                        ],
+                        1,
+                        string.len(
+                            group_prefix
+                        )
+                    ) then
+                        local group_name = string.sub(
+                            fields[
+                                subject
+                            ],
+                            string.len(
+                                group_prefix
+                            ) + 1
+                        )
+                        edutest.for_all_members(
+                            group_name,
+                            function(
+                                player,
+                                name
+                            )
+                                pvpplus.pvp_disable(
+                                    name
+                                )
+                            end
+                        )
+                        return true
                     end
                     if all_students_entry == fields[
                         subject
@@ -1200,6 +1451,31 @@ main_menu_form:add_button(
                 ) then
                     return false
                 end
+                if group_prefix == string.sub(
+                    fields[
+                        subject
+                    ],
+                    1,
+                    string.len(
+                        group_prefix
+                    )
+                ) then
+                    local group_name = string.sub(
+                        fields[
+                            subject
+                        ],
+                        string.len(
+                            group_prefix
+                        ) + 1
+                    )
+                    minetest.chatcommands[
+                        "every_member"
+                    ].func(
+                        name,
+                        group_name .. " grant subject shout"
+                    )
+                    return true
+                end
                 if all_students_entry == fields[
                     subject
                 ] then
@@ -1245,6 +1521,31 @@ main_menu_form:add_button(
                     subject
                 ) then
                     return false
+                end
+                if group_prefix == string.sub(
+                    fields[
+                        subject
+                    ],
+                    1,
+                    string.len(
+                        group_prefix
+                    )
+                ) then
+                    local group_name = string.sub(
+                        fields[
+                            subject
+                        ],
+                        string.len(
+                            group_prefix
+                        ) + 1
+                    )
+                    minetest.chatcommands[
+                        "every_member"
+                    ].func(
+                        name,
+                        group_name .. " revoke subject shout"
+                    )
+                    return true
                 end
                 if all_students_entry == fields[
                     subject
@@ -1325,6 +1626,31 @@ main_menu_form:add_button(
                 ) then
                     return false
                 end
+                if group_prefix == string.sub(
+                    fields[
+                        subject
+                    ],
+                    1,
+                    string.len(
+                        group_prefix
+                    )
+                ) then
+                    local group_name = string.sub(
+                        fields[
+                            subject
+                        ],
+                        string.len(
+                            group_prefix
+                        ) + 1
+                    )
+                    minetest.chatcommands[
+                        "every_member"
+                    ].func(
+                        name,
+                        group_name .. " grant subject fly"
+                    )
+                    return true
+                end
                 if all_students_entry == fields[
                     subject
                 ] then
@@ -1370,6 +1696,31 @@ main_menu_form:add_button(
                     subject
                 ) then
                     return false
+                end
+                if group_prefix == string.sub(
+                    fields[
+                        subject
+                    ],
+                    1,
+                    string.len(
+                        group_prefix
+                    )
+                ) then
+                    local group_name = string.sub(
+                        fields[
+                            subject
+                        ],
+                        string.len(
+                            group_prefix
+                        ) + 1
+                    )
+                    minetest.chatcommands[
+                        "every_member"
+                    ].func(
+                        name,
+                        group_name .. " revoke subject fly"
+                    )
+                    return true
                 end
                 if all_students_entry == fields[
                     subject
