@@ -58,6 +58,11 @@ end
 local string_width = function(
     measured
 )
+    if 1 == string.len(
+        measured
+    ) then
+        return 1
+    end
     local proportional = math.ceil(
         string.len(
             measured
@@ -501,7 +506,7 @@ if nil ~= edutest.set_highlight_marker_click_handler then
     )
     highlight_form:add_button(
         static_layout(
-            "2,3"
+            "2,1.5"
         ),
         highlight_form:new_field(
         ),
@@ -524,7 +529,7 @@ if nil ~= edutest.set_highlight_marker_click_handler then
     )
     highlight_form:add_button(
         static_layout(
-            "2,5"
+            "3,1.5"
         ),
         highlight_form:new_field(
         ),
@@ -541,6 +546,52 @@ if nil ~= edutest.set_highlight_marker_click_handler then
                 "y",
                 "max",
                 -1
+            )
+            return true
+        end
+    )
+    highlight_form:add_button(
+        static_layout(
+            "2,5.5"
+        ),
+        highlight_form:new_field(
+        ),
+        "+",
+        function(
+            player,
+            formname,
+            fields
+        )
+            local name = player:get_player_name(
+            )
+            edutest.adapt_highlighted_area(
+                name,
+                "y",
+                "min",
+                -1
+            )
+            return true
+        end
+    )
+    highlight_form:add_button(
+        static_layout(
+            "3,5.5"
+        ),
+        highlight_form:new_field(
+        ),
+        "-",
+        function(
+            player,
+            formname,
+            fields
+        )
+            local name = player:get_player_name(
+            )
+            edutest.adapt_highlighted_area(
+                name,
+                "y",
+                "min",
+                1
             )
             return true
         end
