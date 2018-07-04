@@ -477,6 +477,8 @@ local highlight_form = new_form(
 )
 
 if nil ~= edutest.set_highlight_marker_click_handler then
+    local highlight_adapting = {
+    }
     highlight_form.formspec = highlight_form.formspec .. "size[7,7]"
     highlight_form.formspec = highlight_form.formspec .. "label[0,0;" .. S(
         "Adjust area"
@@ -596,6 +598,122 @@ if nil ~= edutest.set_highlight_marker_click_handler then
             return true
         end
     )
+    highlight_form:add_button(
+        static_layout(
+            "0,3"
+        ),
+        highlight_form:new_field(
+        ),
+        "+",
+        function(
+            player,
+            formname,
+            fields
+        )
+            local name = player:get_player_name(
+            )
+            edutest.adapt_highlighted_area(
+                name,
+                highlight_adapting[
+                    name
+                ].axis,
+                highlight_adapting[
+                    name
+                ].left_extreme,
+                -highlight_adapting[
+                    name
+                ].right_growing
+            )
+            return true
+        end
+    )
+    highlight_form:add_button(
+        static_layout(
+            "0,4"
+        ),
+        highlight_form:new_field(
+        ),
+        "-",
+        function(
+            player,
+            formname,
+            fields
+        )
+            local name = player:get_player_name(
+            )
+            edutest.adapt_highlighted_area(
+                name,
+                highlight_adapting[
+                    name
+                ].axis,
+                highlight_adapting[
+                    name
+                ].left_extreme,
+                highlight_adapting[
+                    name
+                ].right_growing
+            )
+            return true
+        end
+    )
+    highlight_form:add_button(
+        static_layout(
+            "5,3"
+        ),
+        highlight_form:new_field(
+        ),
+        "+",
+        function(
+            player,
+            formname,
+            fields
+        )
+            local name = player:get_player_name(
+            )
+            edutest.adapt_highlighted_area(
+                name,
+                highlight_adapting[
+                    name
+                ].axis,
+                highlight_adapting[
+                    name
+                ].right_extreme,
+                highlight_adapting[
+                    name
+                ].right_growing
+            )
+            return true
+        end
+    )
+    highlight_form:add_button(
+        static_layout(
+            "5,4"
+        ),
+        highlight_form:new_field(
+        ),
+        "-",
+        function(
+            player,
+            formname,
+            fields
+        )
+            local name = player:get_player_name(
+            )
+            edutest.adapt_highlighted_area(
+                name,
+                highlight_adapting[
+                    name
+                ].axis,
+                highlight_adapting[
+                    name
+                ].right_extreme,
+                -highlight_adapting[
+                    name
+                ].right_growing
+            )
+            return true
+        end
+    )
     edutest.set_highlight_marker_click_handler(
         function(
             self,
@@ -607,6 +725,39 @@ if nil ~= edutest.set_highlight_marker_click_handler then
             )
             local name = clicker:get_player_name(
             )
+            local forward = clicker:get_look_dir(
+            )
+            local right = {
+                x = forward.z,
+                y = forward.y,
+                z = -forward.x,
+            }
+            highlight_adapting[
+                name
+            ] = {
+                axis = self.range,
+            }
+            if 0 <= right[
+                self.range
+            ] then
+                highlight_adapting[
+                    name
+                ] = {
+                    axis = self.range,
+                    right_extreme = "max",
+                    right_growing = 1,
+                    left_extreme = "min",
+                }
+            else
+                highlight_adapting[
+                    name
+                ] = {
+                    axis = self.range,
+                    right_extreme = "min",
+                    right_growing = -1,
+                    left_extreme = "max",
+                }
+            end
             minetest.show_formspec(
                 name,
                 "highlight",
