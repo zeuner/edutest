@@ -19,3 +19,7 @@ Punch a block to set the corner of the area = Schlage einen Block, um den Eckpun
 Toggle invisibility = Unsichtbarkeit umschalten
 Bring = Holen
 Group = Gruppe
+Choose group = Gruppe wählen
+Manage groups = Gruppen verwalten
+Add to group = Zur Gruppe hinzufügen
+Remove from group = Aus Gruppe entfernen

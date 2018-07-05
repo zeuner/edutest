@@ -19,3 +19,7 @@ Toggle invisibility =
 Previous position =
 Bring =
 Group =
+Choose group =
+Manage groups =
+Add to group =
+Remove from group =

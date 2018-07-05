@@ -68,9 +68,13 @@ end
 
 local add_input = function(
     form,
-    formspec,
+    layout,
+    added,
     field
 )
+    local formspec = added(
+        layout
+    )
     form.formspec = form.formspec .. formspec
     if form.handlers[
         field
@@ -385,6 +389,10 @@ local choose_student_entry = S(
     "Choose student"
 )
 
+local choose_group_entry = S(
+    "Choose group"
+)
+
 local group_prefix = S(
     "Group"
 ) .. " "
@@ -392,66 +400,114 @@ local group_prefix = S(
 local basic_student_dropdown = function(
     field
 )
-    local entries = choose_student_entry
-    local max_width = string_width(
-        entries
+    return function(
+        layout
     )
-    edutest.for_all_students(
-        function(
-            player,
-            name
+        local entries = choose_student_entry
+        local max_width = string_width(
+            entries
         )
-            local width = string_width(
+        edutest.for_all_students(
+            function(
+                player,
                 name
             )
-            if max_width < width then
-                max_width = width
+                local width = string_width(
+                    name
+                )
+                if max_width < width then
+                    max_width = width
+                end
+                entries = entries .. "," .. name
             end
-            entries = entries .. "," .. name
-        end
-    )
-    return "dropdown[0,2;" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
+        )
+        local height = 1.5
+        return "dropdown[" .. layout:region_position(
+            max_width,
+            height
+        ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
+    end
 end
 
 local student_dropdown = function(
     field
 )
-    local entries = all_students_entry
-    local max_width = string_width(
-        entries
+    return function(
+        layout
     )
-    if edutest.for_all_groups then
+        local entries = all_students_entry
+        local max_width = string_width(
+            entries
+        )
+        if edutest.for_all_groups then
+            edutest.for_all_groups(
+                function(
+                    name,
+                    members
+                )
+                    local entry = group_prefix .. name
+                    local width = string_width(
+                        entry
+                    )
+                    if max_width < width then
+                        max_width = width
+                    end
+                    entries = entries .. "," .. entry
+                end
+            )
+        end
+        edutest.for_all_students(
+            function(
+                player,
+                name
+            )
+                local width = string_width(
+                    name
+                )
+                if max_width < width then
+                    max_width = width
+                end
+                entries = entries .. "," .. name
+            end
+        )
+        local height = 1.5
+        return "dropdown[" .. layout:region_position(
+            max_width,
+            height
+        ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
+    end
+end
+
+local group_dropdown = function(
+    field
+)
+    return function(
+        layout
+    )
+        local entries = choose_group_entry
+        local max_width = string_width(
+            entries
+        )
         edutest.for_all_groups(
             function(
                 name,
                 members
             )
-                local entry = group_prefix .. name
                 local width = string_width(
-                    entry
+                    name
                 )
                 if max_width < width then
                     max_width = width
                 end
-                entries = entries .. "," .. entry
+                entries = entries .. "," .. name
             end
         )
+        local height = 1.5
+        return "dropdown[" .. layout:region_position(
+            max_width,
+            height
+        ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
     end
-    edutest.for_all_students(
-        function(
-            player,
-            name
-        )
-            local width = string_width(
-                name
-            )
-            if max_width < width then
-                max_width = width
-            end
-            entries = entries .. "," .. name
-        end
-    )
-    return "dropdown[0,2;" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
 end
 
 local main_menu_form = new_main_form(
@@ -520,6 +576,9 @@ if nil ~= minetest.chatcommands[
             local frozen = form:new_field(
             )
             form:add_input(
+                static_layout(
+                    "0,2"
+                ),
                 student_dropdown(
                     frozen
                 ),
@@ -710,6 +769,9 @@ main_menu_form:add_button(
         local subject = form:new_field(
         )
         form:add_input(
+            static_layout(
+                "0,2"
+            ),
             student_dropdown(
                 subject
             ),
@@ -949,6 +1011,9 @@ main_menu_form:add_button(
         local subject = form:new_field(
         )
         form:add_input(
+            static_layout(
+                "0,2"
+            ),
             basic_student_dropdown(
                 subject
             ),
@@ -1051,6 +1116,9 @@ main_menu_form:add_button(
         local subject = form:new_field(
         )
         form:add_input(
+            static_layout(
+                "0,2"
+            ),
             student_dropdown(
                 subject
             ),
@@ -1234,6 +1302,9 @@ if rawget(
             local subject = form:new_field(
             )
             form:add_input(
+                static_layout(
+                    "0,2"
+                ),
                 student_dropdown(
                     subject
                 ),
@@ -1402,6 +1473,165 @@ if rawget(
     )
 end
 
+if edutest.for_all_groups then
+    main_menu_form:add_button(
+        main_layout,
+        main_menu_form:new_field(
+        ),
+        S(
+            "Manage groups"
+        ),
+        function(
+            player,
+            formname,
+            fields
+        )
+            local form = new_sub_form(
+                "EDUtest > " .. S(
+                    "Manage groups"
+                )
+            )
+            local subject = form:new_field(
+            )
+            form:add_input(
+                static_layout(
+                    "0,2"
+                ),
+                basic_student_dropdown(
+                    subject
+                ),
+                subject
+            )
+            local group = form:new_field(
+            )
+            form:add_input(
+                static_layout(
+                    "0,3"
+                ),
+                group_dropdown(
+                    group
+                ),
+                group
+            )
+            form:add_button(
+                static_layout(
+                    "0,4"
+                ),
+                form:new_field(
+                ),
+                S(
+                    "Add to group"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields
+                )
+                    local name = player:get_player_name(
+                    )
+                    if false == check_field(
+                        name,
+                        formname,
+                        fields,
+                        subject
+                    ) then
+                        return false
+                    end
+                    if false == check_field(
+                        name,
+                        formname,
+                        fields,
+                        group
+                    ) then
+                        return false
+                    end
+                    if choose_student_entry == fields[
+                        subject
+                    ] then
+                        return false
+                    end
+                    if choose_group_entry == fields[
+                        group
+                    ] then
+                        return false
+                    end
+                    minetest.chatcommands[
+                        "enter_group"
+                    ].func(
+                        name,
+                        fields[
+                            group
+                        ] .. " " .. fields[
+                            subject
+                        ]
+                    )
+                    return true
+                end
+            )
+            form:add_button(
+                static_layout(
+                    "0,5"
+                ),
+                form:new_field(
+                ),
+                S(
+                    "Remove from group"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields
+                )
+                    local name = player:get_player_name(
+                    )
+                    if false == check_field(
+                        name,
+                        formname,
+                        fields,
+                        subject
+                    ) then
+                        return false
+                    end
+                    if false == check_field(
+                        name,
+                        formname,
+                        fields,
+                        group
+                    ) then
+                        return false
+                    end
+                    if choose_student_entry == fields[
+                        subject
+                    ] then
+                        return false
+                    end
+                    if choose_group_entry == fields[
+                        group
+                    ] then
+                        return false
+                    end
+                    minetest.chatcommands[
+                        "leave_group"
+                    ].func(
+                        name,
+                        fields[
+                            group
+                        ] .. " " .. fields[
+                            subject
+                        ]
+                    )
+                    return true
+                end
+            )
+            set_current_inventory_form(
+                player,
+                form
+            )
+            return true
+        end
+    )
+end
+
 main_menu_form:add_button(
     main_layout,
     main_menu_form:new_field(
@@ -1422,6 +1652,9 @@ main_menu_form:add_button(
         local subject = form:new_field(
         )
         form:add_input(
+            static_layout(
+                "0,2"
+            ),
             student_dropdown(
                 subject
             ),
@@ -1597,6 +1830,9 @@ main_menu_form:add_button(
         local subject = form:new_field(
         )
         form:add_input(
+            static_layout(
+                "0,2"
+            ),
             student_dropdown(
                 subject
             ),
