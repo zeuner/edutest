@@ -393,9 +393,29 @@ local choose_group_entry = S(
     "Choose group"
 )
 
+local new_group_entry = S(
+    "New group (enter name below)"
+)
+
 local group_prefix = S(
     "Group"
 ) .. " "
+
+local text_field = function(
+    field,
+    width,
+    height,
+    label
+)
+    return function(
+        layout
+    )
+        return "field[" .. layout:region_position(
+            width,
+            height
+        ) .. ";" .. width .. "," .. height .. ";" .. field .. ";" .. label .. ";]"
+    end
+end
 
 local basic_student_dropdown = function(
     field
@@ -488,6 +508,13 @@ local group_dropdown = function(
         local max_width = string_width(
             entries
         )
+        local width = string_width(
+            new_group_entry
+        )
+        if max_width < width then
+            max_width = width
+        end
+        entries = entries .. "," .. new_group_entry
         edutest.for_all_groups(
             function(
                 name,
@@ -519,7 +546,7 @@ local new_sub_form = function(
 )
     local constructed = new_form(
     )
-    constructed.formspec = constructed.formspec .. "size[7,7]"
+    constructed.formspec = constructed.formspec .. "size[7,8]"
     constructed.formspec = constructed.formspec .. "label[0,0;" .. label .. "]"
     constructed:add_button(
         static_layout(
@@ -1513,9 +1540,25 @@ if edutest.for_all_groups then
                 ),
                 group
             )
+            local new_group = form:new_field(
+            )
+            form:add_input(
+                static_layout(
+                    "0.5,5"
+                ),
+                text_field(
+                    new_group,
+                    6,
+                    1,
+                    S(
+                        "Name for new group"
+                    )
+                ),
+                new_group
+            )
             form:add_button(
                 static_layout(
-                    "0,4"
+                    "0,6"
                 ),
                 form:new_field(
                 ),
@@ -1550,18 +1593,39 @@ if edutest.for_all_groups then
                     ] then
                         return false
                     end
+                    local group_name
                     if choose_group_entry == fields[
                         group
                     ] then
                         return false
                     end
+                    if new_group_entry == fields[
+                        group
+                    ] then
+                        group_name = fields[
+                            new_group
+                        ]
+                        group_name = string.gsub(
+                            group_name,
+                            " ",
+                            "_"
+                        )
+                        minetest.chatcommands[
+                            "create_group"
+                        ].func(
+                            name,
+                            group_name
+                        )
+                    else
+                        group_name = fields[
+                            group
+                        ]
+                    end
                     minetest.chatcommands[
                         "enter_group"
                     ].func(
                         name,
-                        fields[
-                            group
-                        ] .. " " .. fields[
+                        group_name .. " " .. fields[
                             subject
                         ]
                     )
@@ -1570,7 +1634,7 @@ if edutest.for_all_groups then
             )
             form:add_button(
                 static_layout(
-                    "0,5"
+                    "0,7"
                 ),
                 form:new_field(
                 ),
@@ -1605,18 +1669,39 @@ if edutest.for_all_groups then
                     ] then
                         return false
                     end
+                    local group_name
                     if choose_group_entry == fields[
                         group
                     ] then
                         return false
                     end
+                    if new_group_entry == fields[
+                        group
+                    ] then
+                        group_name = fields[
+                            new_group
+                        ]
+                        group_name = string.gsub(
+                            group_name,
+                            " ",
+                            "_"
+                        )
+                        minetest.chatcommands[
+                            "create_group"
+                        ].func(
+                            name,
+                            group_name
+                        )
+                    else
+                        group_name = fields[
+                            group
+                        ]
+                    end
                     minetest.chatcommands[
                         "leave_group"
                     ].func(
                         name,
-                        fields[
-                            group
-                        ] .. " " .. fields[
+                        group_name .. " " .. fields[
                             subject
                         ]
                     )

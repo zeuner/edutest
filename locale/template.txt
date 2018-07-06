@@ -23,3 +23,5 @@ Choose group =
 Manage groups =
 Add to group =
 Remove from group =
+New group (enter name below) =
+Name for new group =
