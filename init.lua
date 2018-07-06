@@ -131,17 +131,21 @@ local add_button = function(
     ] = handler
 end
 
+local last_form_id = 0
+
 local new_form = function(
 )
+    last_form_id = last_form_id + 1
     local constructed = {
         add_button = add_button,
         add_input = add_input,
+        form_id = last_form_id,
         last_field = 0,
         new_field = function(
             self
         )
             self.last_field = self.last_field + 1
-            return "edutest_field_" .. self.last_field
+            return "edutest_field_" .. self.form_id .. "_" .. self.last_field
         end,
         formspec = "",
         handlers = {
