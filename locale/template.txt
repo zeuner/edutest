@@ -20,3 +20,4 @@ Previous position =
 Bring =
 Adjust area =
 Close =
+right-click to adapt area =

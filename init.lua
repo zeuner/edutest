@@ -767,6 +767,14 @@ if nil ~= edutest.set_highlight_marker_click_handler then
     )
 end
 
+if nil ~= edutest.set_highlight_marker_tooltip then
+    edutest.set_highlight_marker_tooltip(
+        S(
+            "right-click to adapt area"
+        )
+    )
+end
+
 local teleport_command = "teleport"
 
 if nil ~= minetest.chatcommands[
