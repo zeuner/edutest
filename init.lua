@@ -73,9 +73,13 @@ end
 
 local add_input = function(
     form,
-    formspec,
+    layout,
+    added,
     field
 )
+    local formspec = added(
+        layout
+    )
     form.formspec = form.formspec .. formspec
     if form.handlers[
         field
@@ -416,49 +420,65 @@ local choose_student_entry = S(
 local basic_student_dropdown = function(
     field
 )
-    local entries = choose_student_entry
-    local max_width = string_width(
-        entries
+    return function(
+        layout
     )
-    edutest.for_all_students(
-        function(
-            player,
-            name
+        local entries = choose_student_entry
+        local max_width = string_width(
+            entries
         )
-            local width = string_width(
+        edutest.for_all_students(
+            function(
+                player,
                 name
             )
-            if max_width < width then
-                max_width = width
+                local width = string_width(
+                    name
+                )
+                if max_width < width then
+                    max_width = width
+                end
+                entries = entries .. "," .. name
             end
-            entries = entries .. "," .. name
-        end
-    )
-    return "dropdown[0,2;" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
+        )
+        local height = 1.5
+        return "dropdown[" .. layout:region_position(
+            max_width,
+            height
+        ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
+    end
 end
 
 local student_dropdown = function(
     field
 )
-    local entries = all_students_entry
-    local max_width = string_width(
-        entries
+    return function(
+        layout
     )
-    edutest.for_all_students(
-        function(
-            player,
-            name
+        local entries = all_students_entry
+        local max_width = string_width(
+            entries
         )
-            local width = string_width(
+        edutest.for_all_students(
+            function(
+                player,
                 name
             )
-            if max_width < width then
-                max_width = width
+                local width = string_width(
+                    name
+                )
+                if max_width < width then
+                    max_width = width
+                end
+                entries = entries .. "," .. name
             end
-            entries = entries .. "," .. name
-        end
-    )
-    return "dropdown[0,2;" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
+        )
+        local height = 1.5
+        return "dropdown[" .. layout:region_position(
+            max_width,
+            height
+        ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
+    end
 end
 
 local main_menu_form = new_main_form(
@@ -829,6 +849,9 @@ if nil ~= minetest.chatcommands[
             local frozen = form:new_field(
             )
             form:add_input(
+                static_layout(
+                    "0,2"
+                ),
                 student_dropdown(
                     frozen
                 ),
@@ -969,6 +992,9 @@ main_menu_form:add_button(
         local subject = form:new_field(
         )
         form:add_input(
+            static_layout(
+                "0,2"
+            ),
             student_dropdown(
                 subject
             ),
@@ -1138,6 +1164,9 @@ main_menu_form:add_button(
         local subject = form:new_field(
         )
         form:add_input(
+            static_layout(
+                "0,2"
+            ),
             basic_student_dropdown(
                 subject
             ),
@@ -1240,6 +1269,9 @@ main_menu_form:add_button(
         local subject = form:new_field(
         )
         form:add_input(
+            static_layout(
+                "0,2"
+            ),
             student_dropdown(
                 subject
             ),
@@ -1373,6 +1405,9 @@ if rawget(
             local subject = form:new_field(
             )
             form:add_input(
+                static_layout(
+                    "0,2"
+                ),
                 student_dropdown(
                     subject
                 ),
@@ -1501,6 +1536,9 @@ main_menu_form:add_button(
         local subject = form:new_field(
         )
         form:add_input(
+            static_layout(
+                "0,2"
+            ),
             student_dropdown(
                 subject
             ),
@@ -1626,6 +1664,9 @@ main_menu_form:add_button(
         local subject = form:new_field(
         )
         form:add_input(
+            static_layout(
+                "0,2"
+            ),
             student_dropdown(
                 subject
             ),
