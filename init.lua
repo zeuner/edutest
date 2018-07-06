@@ -1877,6 +1877,57 @@ if nil ~= minetest.chatcommands[
                     return true
                 end
             )
+            local owner = form:new_field(
+            )
+            form:add_input(
+                static_layout(
+                    "0,4"
+                ),
+                basic_student_dropdown(
+                    owner
+                ),
+                owner
+            )
+            form:add_button(
+                static_layout(
+                    "0,5"
+                ),
+                form:new_field(
+                ),
+                S(
+                    "Assign area"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields
+                )
+                    local name = player:get_player_name(
+                    )
+                    if false == check_field(
+                        name,
+                        formname,
+                        fields,
+                        owner
+                    ) then
+                        return false
+                    end
+                    if choose_student_entry == fields[
+                        owner
+                    ] then
+                        return false
+                    end
+                    minetest.chatcommands[
+                        "highlight_areas"
+                    ].func(
+                        name,
+                        "set_owner " .. fields[
+                            owner
+                        ] .. " protected"
+                    )
+                    return true
+                end
+            )
             set_current_inventory_form(
                 player,
                 form

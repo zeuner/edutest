@@ -21,3 +21,4 @@ Bring =
 Adjust area =
 Close =
 right-click to adapt area =
+Assign area =

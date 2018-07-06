@@ -21,3 +21,4 @@ Bring = Holen
 Adjust area = Gebiet anpassen
 Close = Schließen
 right-click to adapt area = Rechtsklick, um Gebiet anzupassen
+Assign area = Gebiet zuweisen
