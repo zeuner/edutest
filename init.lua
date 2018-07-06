@@ -130,17 +130,21 @@ local add_button = function(
     ] = handler
 end
 
+local last_form_id = 0
+
 local new_form = function(
 )
+    last_form_id = last_form_id + 1
     local constructed = {
         add_button = add_button,
         add_input = add_input,
+        form_id = last_form_id,
         last_field = 0,
         new_field = function(
             self
         )
             self.last_field = self.last_field + 1
-            return "edutest_field_" .. self.last_field
+            return "edutest_field_" .. self.form_id .. "_" .. self.last_field
         end,
         formspec = "",
         handlers = {
@@ -328,6 +332,8 @@ local new_main_form = function(
             )
             button_handlers[
                 name
+            ][
+                "inventory"
             ] = nil
             local old_page = player_previous_inventory_page[
                 name
@@ -349,22 +355,39 @@ end
 
 local set_current_form_handlers = function(
     player,
-    form
+    form,
+    context
 )
+    local installed_context = context
+    if not installed_context then
+        installed_context = "inventory"
+    end
     local name = player:get_player_name(
     )
+    if not button_handlers[
+        name
+    ] then
+        button_handlers[
+            name
+        ] = {
+        }
+    end
     button_handlers[
         name
+    ][
+        installed_context
     ] = {
     }
-    for k, v in pairs(
+    for field, action in pairs(
         form.handlers
     ) do
         button_handlers[
             name
         ][
-            k
-        ] = v
+            installed_context
+        ][
+            field
+        ] = action
     end
 end
 
@@ -2221,23 +2244,27 @@ local on_player_receive_fields = function(
 )
     local name = player:get_player_name(
     )
-    local handlers = button_handlers[
+    local contexts = button_handlers[
         name
     ]
-    if not handlers then
+    if not contexts then
         return false
     end
-    for k, v in pairs(
-        handlers
+    for context, handlers in pairs(
+        contexts
     ) do
-        if nil ~= fields[
-            k
-        ] then
-            return v(
-                player,
-                formname,
-                fields
-            )
+        for field, action in pairs(
+            handlers
+        ) do
+            if nil ~= fields[
+                field
+            ] then
+                return action(
+                    player,
+                    formname,
+                    fields
+                )
+            end
         end
     end
     return false
