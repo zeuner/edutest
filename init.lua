@@ -764,7 +764,8 @@ if nil ~= edutest.set_highlight_marker_click_handler then
         )
             set_current_form_handlers(
                 clicker,
-                highlight_form
+                highlight_form,
+                "highlight"
             )
             local name = clicker:get_player_name(
             )
