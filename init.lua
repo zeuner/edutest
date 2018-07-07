@@ -502,11 +502,19 @@ local main_menu_form = new_main_form(
 )
 
 local new_sub_form = function(
-    label
+    label,
+    width,
+    height
 )
+    local size
+    if not width then
+        size = "7,7"
+    else
+        size = width .. "," .. height
+    end
     local constructed = new_form(
     )
-    constructed.formspec = constructed.formspec .. "size[7,7]"
+    constructed.formspec = constructed.formspec .. "size[" .. size .. "]"
     constructed.formspec = constructed.formspec .. "label[0,0;" .. label .. "]"
     constructed:add_button(
         static_layout(
@@ -1807,7 +1815,9 @@ if nil ~= minetest.chatcommands[
             local form = new_sub_form(
                 "EDUtest > " .. S(
                     "Area protection"
-                )
+                ),
+                7,
+                8
             )
             form:add_button(
                 static_layout(
@@ -1904,9 +1914,25 @@ if nil ~= minetest.chatcommands[
                 ),
                 owner
             )
+            local area_name = form:new_field(
+            )
+            form:add_input(
+                static_layout(
+                    "0.5,6"
+                ),
+                text_field(
+                    area_name,
+                    6,
+                    1,
+                    S(
+                        "Name for new area"
+                    )
+                ),
+                area_name
+            )
             form:add_button(
                 static_layout(
-                    "0,5"
+                    "0,7"
                 ),
                 form:new_field(
                 ),
@@ -1933,13 +1959,26 @@ if nil ~= minetest.chatcommands[
                     ] then
                         return false
                     end
+                    if "" == fields[
+                        area_name
+                    ] then
+                        minetest.chat_send_player(
+                            name,
+                            "EDUtest: " .. S(
+                                "Please enter a name for the area"
+                            )
+                        )
+                        return false
+                    end
                     minetest.chatcommands[
                         "highlight_areas"
                     ].func(
                         name,
                         "set_owner " .. fields[
                             owner
-                        ] .. " protected"
+                        ] .. " " .. fields[
+                            area_name
+                        ]
                     )
                     return true
                 end
