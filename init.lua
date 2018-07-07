@@ -417,6 +417,22 @@ local choose_student_entry = S(
     "Choose student"
 )
 
+local text_field = function(
+    field,
+    width,
+    height,
+    label
+)
+    return function(
+        layout
+    )
+        return "field[" .. layout:region_position(
+            width,
+            height
+        ) .. ";" .. width .. "," .. height .. ";" .. field .. ";" .. label .. ";]"
+    end
+end
+
 local basic_student_dropdown = function(
     field
 )
