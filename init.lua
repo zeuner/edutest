@@ -1907,7 +1907,7 @@ if nil ~= minetest.chatcommands[
             )
             form:add_input(
                 static_layout(
-                    "0,4"
+                    "0.2,4.2"
                 ),
                 basic_student_dropdown(
                     owner
