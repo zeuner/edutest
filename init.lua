@@ -526,6 +526,55 @@ local student_dropdown = function(
     end
 end
 
+local basic_student_dropdown_with_groups = function(
+    field
+)
+    return function(
+        layout
+    )
+        local entries = choose_student_entry
+        local max_width = string_width(
+            entries
+        )
+        if edutest.for_all_groups then
+            edutest.for_all_groups(
+                function(
+                    name,
+                    members
+                )
+                    local entry = group_prefix .. name
+                    local width = string_width(
+                        entry
+                    )
+                    if max_width < width then
+                        max_width = width
+                    end
+                    entries = entries .. "," .. entry
+                end
+            )
+        end
+        edutest.for_all_students(
+            function(
+                player,
+                name
+            )
+                local width = string_width(
+                    name
+                )
+                if max_width < width then
+                    max_width = width
+                end
+                entries = entries .. "," .. name
+            end
+        )
+        local height = 1.5
+        return "dropdown[" .. layout:region_position(
+            max_width,
+            height
+        ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
+    end
+end
+
 local group_dropdown = function(
     field
 )
@@ -2526,7 +2575,7 @@ if nil ~= minetest.chatcommands[
                 static_layout(
                     "0.2,4.2"
                 ),
-                basic_student_dropdown(
+                basic_student_dropdown_with_groups(
                     owner
                 ),
                 owner
@@ -2586,6 +2635,33 @@ if nil ~= minetest.chatcommands[
                             )
                         )
                         return false
+                    end
+                    if group_prefix == string.sub(
+                        fields[
+                            owner
+                        ],
+                        1,
+                        string.len(
+                            group_prefix
+                        )
+                    ) then
+                        local group_name = string.sub(
+                            fields[
+                                owner
+                            ],
+                            string.len(
+                                group_prefix
+                            ) + 1
+                        )
+                        minetest.chatcommands[
+                            "highlight_set_owner_group"
+                        ].func(
+                            name,
+                            group_name .. " " .. fields[
+                                area_name
+                            ]
+                        )
+                        return true
                     end
                     minetest.chatcommands[
                         "highlight_areas"
