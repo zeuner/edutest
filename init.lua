@@ -903,6 +903,14 @@ if nil ~= edutest.set_highlight_marker_click_handler then
             self,
             clicker
         )
+            if not self.range then
+                print(
+                    "EDUtest unexpected marker"
+                )
+                self.object:remove(
+                )
+                return
+            end
             set_current_form_handlers(
                 clicker,
                 highlight_form,
