@@ -259,6 +259,9 @@ if rawget(
         ] = page
     end
     set_inventory_page = unified_inventory.set_inventory_formspec
+elseif minetest.registered_items[
+    "lottinventory:craft_book"
+] then
 elseif rawget(
     _G,
     "sfinv"
@@ -1643,6 +1646,64 @@ if rawget(
                     {
                         teacher = true,
                     }
+                )
+            end,
+        }
+    )
+elseif minetest.registered_items[
+    "lottinventory:craft_book"
+] then
+    minetest.register_tool(
+        "edutest:edutest_book",
+        {
+            description = "EDUtest Book",
+            groups = {
+                book = 1
+            },
+            inventory_image = "edutest_gui.png",
+            wield_image = "",
+            wield_scale = {
+                x = 1,
+                y = 1,
+                z = 1
+            },
+            stack_max = 1,
+            tool_capabilities = {
+                full_punch_interval = 1.0,
+                max_drop_level = 0,
+                groupcaps = {
+                    fleshy = {
+                        times = {
+                            [2] = 0.80,
+                            [3] = 0.40
+                        },
+                        maxlevel = 1
+                    },
+                    snappy = {
+                        times = {
+                            [2] = 0.80,
+                            [3] = 0.40
+                        },
+                        maxlevel = 1
+                    },
+                    choppy = {
+                        times = {
+                            [3] = 0.90
+                        },
+                        maxlevel = 0
+                    }
+                }
+            },
+            on_use = function(
+                itemstack,
+                player,
+                pointed_thing
+            )
+                minetest.show_formspec(
+                    player:get_player_name(
+                    ),
+                    "EDUtest",
+                    main_menu_form.formspec
                 )
             end,
         }

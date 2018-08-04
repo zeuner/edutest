@@ -6,3 +6,4 @@ pvpplus?
 intllib?
 areas?
 invis?
+lottinventory?
