@@ -238,6 +238,15 @@ local default_inventory_page
 
 local set_inventory_page
 
+local set_frontend_form = function(
+    player,
+    formspec
+)
+    player:set_inventory_formspec(
+        form.formspec
+    )
+end
+
 if rawget(
     _G,
     "unified_inventory"
@@ -262,6 +271,27 @@ if rawget(
 elseif minetest.registered_items[
     "lottinventory:craft_book"
 ] then
+    set_frontend_form = function(
+        player,
+        formspec
+    )
+        minetest.show_formspec(
+            player:get_player_name(
+            ),
+            "EDUtest",
+            formspec
+        )
+    end
+    set_inventory_page = function(
+        player,
+        ignored
+    )
+        minetest.close_formspec(
+            player:get_player_name(
+            ),
+            "EDUtest"
+        )
+    end
 elseif rawget(
     _G,
     "sfinv"
@@ -398,7 +428,8 @@ local set_current_inventory_form = function(
         player,
         form
     )
-    player:set_inventory_formspec(
+    set_frontend_form(
+        player,
         form.formspec
     )
 end
@@ -1699,6 +1730,10 @@ elseif minetest.registered_items[
                 player,
                 pointed_thing
             )
+                set_current_form_handlers(
+                    player,
+                    main_menu_form
+                )
                 minetest.show_formspec(
                     player:get_player_name(
                     ),
@@ -1720,11 +1755,17 @@ elseif minetest.registered_items[
             if true == privs[
                 "teacher"
             ] then
-                player:get_inventory(
-                ):add_item(
+                local inventory = player:get_inventory(
+                )
+                if not inventory:contains_item(
                     'main',
                     'edutest:edutest_book'
-                )
+                ) then
+                    inventory:add_item(
+                        'main',
+                        'edutest:edutest_book'
+                    )
+                end
             end
         end
     )
