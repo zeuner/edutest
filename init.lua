@@ -1708,6 +1708,26 @@ elseif minetest.registered_items[
             end,
         }
     )
+    minetest.register_on_joinplayer(
+        function (
+            player
+        )
+            local name = player:get_player_name(
+            )
+            local privs = minetest.get_player_privs(
+                name
+            )
+            if true == privs[
+                "teacher"
+            ] then
+                player:get_inventory(
+                ):add_item(
+                    'main',
+                    'edutest:edutest_book'
+                )
+            end
+        end
+    )
 elseif rawget(
     _G,
     "sfinv"
