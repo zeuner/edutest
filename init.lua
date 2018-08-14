@@ -911,12 +911,31 @@ if nil ~= edutest.set_highlight_marker_click_handler then
                 )
                 return
             end
+            local name = clicker:get_player_name(
+            )
+            if self.player_name ~= name then
+                if self.player_name then
+                    print(
+                        "EDUtest owner check mismatch left " .. self.player_name
+                    )
+                end
+                if name then
+                    print(
+                        "EDUtest owner check mismatch right " .. name
+                    )
+                end
+                minetest.chat_send_player(
+                    name,
+                    "EDUtest: " .. S(
+                        "not your marker"
+                    )
+                )
+                return
+            end
             set_current_form_handlers(
                 clicker,
                 highlight_form,
                 "highlight"
-            )
-            local name = clicker:get_player_name(
             )
             local forward = clicker:get_look_dir(
             )
