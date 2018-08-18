@@ -20,7 +20,6 @@ Toggle invisibility = Unsichtbarkeit umschalten
 Bring = Holen
 Close = Schließen
 Adjust area = Gebiet anpassen
-Close = Schließen
 right-click to adapt area = Rechtsklick, um Gebiet anzupassen
 Assign area = Gebiet zuweisen
 Name for new area = Name für das Gebiet

@@ -354,13 +354,23 @@ local new_main_form = function(
     )
     constructed.formspec = constructed.formspec .. "size[11,11]"
     constructed.formspec = constructed.formspec .. "label[0,0;" .. label .. "]"
+    local back_from_main
+    if minetest.registered_items[
+        "lottinventory:craft_book"
+    ] then
+        back_from_main = S(
+            "Close"
+        )
+    else
+        back_from_main = S(
+            "Back"
+        )
+    end
     constructed:add_button(
         main_layout,
         constructed:new_field(
         ),
-        S(
-            "Back"
-        ),
+        back_from_main,
         function(
             player,
             formname,
