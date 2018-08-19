@@ -2928,30 +2928,41 @@ elseif minetest.registered_items[
             end,
         }
     )
+    local give_to_teacher = function (
+        player
+    )
+        local name = player:get_player_name(
+        )
+        local privs = minetest.get_player_privs(
+            name
+        )
+        if true == privs[
+            "teacher"
+        ] then
+            local inventory = player:get_inventory(
+            )
+            if not inventory:contains_item(
+                'main',
+                'edutest:edutest_book'
+            ) then
+                inventory:add_item(
+                    'main',
+                    'edutest:edutest_book'
+                )
+            end
+        end
+    end
     minetest.register_on_joinplayer(
+        give_to_teacher
+    )
+    minetest.register_on_respawnplayer(
         function (
             player
         )
-            local name = player:get_player_name(
+            give_to_teacher(
+                player
             )
-            local privs = minetest.get_player_privs(
-                name
-            )
-            if true == privs[
-                "teacher"
-            ] then
-                local inventory = player:get_inventory(
-                )
-                if not inventory:contains_item(
-                    'main',
-                    'edutest:edutest_book'
-                ) then
-                    inventory:add_item(
-                        'main',
-                        'edutest:edutest_book'
-                    )
-                end
-            end
+            return false
         end
     )
 elseif rawget(
