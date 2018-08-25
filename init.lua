@@ -252,7 +252,7 @@ local set_frontend_form = function(
     formspec
 )
     player:set_inventory_formspec(
-        form.formspec
+        formspec
     )
 end
 
