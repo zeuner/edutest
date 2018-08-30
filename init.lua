@@ -287,7 +287,7 @@ elseif minetest.registered_items[
         minetest.show_formspec(
             player:get_player_name(
             ),
-            "EDUtest",
+            "edutest:main",
             formspec
         )
     end
@@ -298,7 +298,7 @@ elseif minetest.registered_items[
         minetest.close_formspec(
             player:get_player_name(
             ),
-            "EDUtest"
+            "edutest:main"
         )
     end
 elseif rawget(
@@ -729,7 +729,7 @@ if nil ~= edutest.set_highlight_marker_click_handler then
             )
             minetest.close_formspec(
                 name,
-                "highlight"
+                "edutest:highlight"
             )
             return true
         end
@@ -1016,7 +1016,7 @@ if nil ~= edutest.set_highlight_marker_click_handler then
             end
             minetest.show_formspec(
                 name,
-                "highlight",
+                "edutest:highlight",
                 highlight_form.formspec
             )
         end
@@ -2922,7 +2922,7 @@ elseif minetest.registered_items[
                 minetest.show_formspec(
                     player:get_player_name(
                     ),
-                    "EDUtest",
+                    "edutest:main",
                     main_menu_form.formspec
                 )
             end,
