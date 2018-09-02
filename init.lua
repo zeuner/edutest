@@ -405,7 +405,7 @@ local set_current_inventory_form = function(
         form
     )
     player:set_inventory_formspec(
-        formspec
+        form.formspec
     )
 end
 
