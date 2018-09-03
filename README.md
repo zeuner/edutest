@@ -26,3 +26,4 @@ granted the "teacher" privilege.
 * intllib (https://github.com/minetest-mods/intllib)
 * invis (https://github.com/octacian/minetest-mod-invis)
 * areas (https://github.com/ShadowNinja/areas)
+* invincibility (https://github.com/zeuner/invincibility)

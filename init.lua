@@ -1537,6 +1537,48 @@ if nil ~= minetest.chatcommands[
     )
 end
 
+if nil ~= minetest.registered_privileges[
+    "invincible"
+] then
+    main_menu_form:add_button(
+        main_layout,
+        main_menu_form:new_field(
+        ),
+        S(
+            "Toggle invulnerability"
+        ),
+        function(
+            player,
+            formname,
+            fields
+        )
+            local name = player:get_player_name(
+            )
+            if minetest.check_player_privs(
+                name,
+                {
+                    invincible = true
+                }
+            ) then
+                minetest.chatcommands[
+                    "revoke"
+                ].func(
+                    name,
+                    name .. " invincible"
+                )
+            else
+                minetest.chatcommands[
+                    "grant"
+                ].func(
+                    name,
+                    name .. " invincible"
+                )
+            end
+            return true
+        end
+    )
+end
+
 if nil ~= minetest.chatcommands[
     "vanish"
 ] then
