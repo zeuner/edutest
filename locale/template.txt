@@ -32,3 +32,4 @@ Remove from group =
 New group (enter name below) =
 Name for new group =
 not your marker =
+Toggle invulnerability =
