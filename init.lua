@@ -314,49 +314,8 @@ local main_layout = horizontal_layout(
     11
 )
 
-local new_main_form = function(
-    label
+local null_form = new_form(
 )
-    local constructed = new_form(
-    )
-    constructed.formspec = constructed.formspec .. "size[11,11]"
-    constructed.formspec = constructed.formspec .. "label[0,0;" .. label .. "]"
-    constructed:add_button(
-        main_layout,
-        constructed:new_field(
-        ),
-        S(
-            "Back"
-        ),
-        function(
-            player,
-            formname,
-            fields
-        )
-            local name = player:get_player_name(
-            )
-            button_handlers[
-                name
-            ][
-                "inventory"
-            ] = nil
-            local old_page = player_previous_inventory_page[
-                name
-            ]
-            if not old_page then
-                old_page = default_inventory_page
-            end
-            set_inventory_page(
-                player,
-                old_page
-            )
-            return true
-        end
-    )
-    main_layout:line_break(
-    )
-    return constructed
-end
 
 local set_current_form_handlers = function(
     player,
@@ -394,6 +353,49 @@ local set_current_form_handlers = function(
             field
         ] = action
     end
+end
+
+local new_main_form = function(
+    label
+)
+    local constructed = new_form(
+    )
+    constructed.formspec = constructed.formspec .. "size[11,11]"
+    constructed.formspec = constructed.formspec .. "label[0,0;" .. label .. "]"
+    constructed:add_button(
+        main_layout,
+        constructed:new_field(
+        ),
+        S(
+            "Back"
+        ),
+        function(
+            player,
+            formname,
+            fields
+        )
+            set_current_form_handlers(
+                player,
+                null_form
+            )
+            local name = player:get_player_name(
+            )
+            local old_page = player_previous_inventory_page[
+                name
+            ]
+            if not old_page then
+                old_page = default_inventory_page
+            end
+            set_inventory_page(
+                player,
+                old_page
+            )
+            return true
+        end
+    )
+    main_layout:line_break(
+    )
+    return constructed
 end
 
 local set_current_inventory_form = function(
