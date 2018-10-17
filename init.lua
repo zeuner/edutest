@@ -111,7 +111,8 @@ local add_button = function(
     layout,
     field,
     label,
-    handler
+    handler,
+    preparation
 )
     local width = string_width(
         label
@@ -143,9 +144,26 @@ local add_button = function(
             "duplicate UI handler: " .. field
         )
     end
+    if form.resources[
+        field
+    ] then
+        fatal(
+            "duplicate UI handler: " .. field
+        )
+    end
     form.handlers[
         field
     ] = handler
+    form.resources[
+        field
+    ] = {
+    }
+    if preparation then
+        form.resources[
+            field
+        ] = preparation(
+        )
+    end
 end
 
 local last_form_id = 0
@@ -197,6 +215,8 @@ local new_form = function(
         handlers = {
         },
         inputs = {
+        },
+        resources = {
         },
     }
     return constructed
@@ -385,7 +405,8 @@ local new_main_form = function(
         function(
             player,
             formname,
-            fields
+            fields,
+            form
         )
             local name = player:get_player_name(
             )
@@ -799,7 +820,8 @@ local new_sub_form = function(
         function(
             player,
             formname,
-            fields
+            fields,
+            form
         )
             set_current_inventory_form(
                 player,
@@ -845,7 +867,8 @@ if nil ~= edutest.set_highlight_marker_click_handler then
         function(
             player,
             formname,
-            fields
+            fields,
+            form
         )
             local name = player:get_player_name(
             )
@@ -866,7 +889,8 @@ if nil ~= edutest.set_highlight_marker_click_handler then
         function(
             player,
             formname,
-            fields
+            fields,
+            form
         )
             local name = player:get_player_name(
             )
@@ -889,7 +913,8 @@ if nil ~= edutest.set_highlight_marker_click_handler then
         function(
             player,
             formname,
-            fields
+            fields,
+            form
         )
             local name = player:get_player_name(
             )
@@ -912,7 +937,8 @@ if nil ~= edutest.set_highlight_marker_click_handler then
         function(
             player,
             formname,
-            fields
+            fields,
+            form
         )
             local name = player:get_player_name(
             )
@@ -935,7 +961,8 @@ if nil ~= edutest.set_highlight_marker_click_handler then
         function(
             player,
             formname,
-            fields
+            fields,
+            form
         )
             local name = player:get_player_name(
             )
@@ -958,7 +985,8 @@ if nil ~= edutest.set_highlight_marker_click_handler then
         function(
             player,
             formname,
-            fields
+            fields,
+            form
         )
             local name = player:get_player_name(
             )
@@ -987,7 +1015,8 @@ if nil ~= edutest.set_highlight_marker_click_handler then
         function(
             player,
             formname,
-            fields
+            fields,
+            form
         )
             local name = player:get_player_name(
             )
@@ -1016,7 +1045,8 @@ if nil ~= edutest.set_highlight_marker_click_handler then
         function(
             player,
             formname,
-            fields
+            fields,
+            form
         )
             local name = player:get_player_name(
             )
@@ -1045,7 +1075,8 @@ if nil ~= edutest.set_highlight_marker_click_handler then
         function(
             player,
             formname,
-            fields
+            fields,
+            form
         )
             local name = player:get_player_name(
             )
@@ -1176,7 +1207,20 @@ if nil ~= minetest.chatcommands[
         function(
             player,
             formname,
-            fields
+            fields,
+            form,
+            field
+        )
+            local subform = form.resources[
+                field
+            ].form
+            set_current_inventory_form(
+                player,
+                subform
+            )
+            return true
+        end,
+        function(
         )
             local form = new_sub_form(
                 "EDUtest > " .. S(
@@ -1350,11 +1394,9 @@ if nil ~= minetest.chatcommands[
                     return true
                 end
             )
-            set_current_inventory_form(
-                player,
-                form
-            )
-            return true
+            return {
+                form = form
+            }
         end
     )
 end
@@ -1369,7 +1411,20 @@ main_menu_form:add_button(
     function(
         player,
         formname,
-        fields
+        fields,
+        form,
+        field
+    )
+        local subform = form.resources[
+            field
+        ].form
+        set_current_inventory_form(
+            player,
+            subform
+        )
+        return true
+    end,
+    function(
     )
         local form = new_sub_form(
             "EDUtest > " .. S(
@@ -1593,11 +1648,9 @@ main_menu_form:add_button(
                 return true
             end
         )
-        set_current_inventory_form(
-            player,
-            form
-        )
-        return true
+        return {
+            form = form
+        }
     end
 )
 
@@ -1611,7 +1664,20 @@ main_menu_form:add_button(
     function(
         player,
         formname,
-        fields
+        fields,
+        form,
+        field
+    )
+        local subform = form.resources[
+            field
+        ].form
+        set_current_inventory_form(
+            player,
+            subform
+        )
+        return true
+    end,
+    function(
     )
         local form = new_sub_form(
             "EDUtest > " .. S(
@@ -1698,11 +1764,9 @@ main_menu_form:add_button(
                 end
             )
         end
-        set_current_inventory_form(
-            player,
-            form
-        )
-        return true
+        return {
+            form = form
+        }
     end
 )
 
@@ -1716,7 +1780,20 @@ main_menu_form:add_button(
     function(
         player,
         formname,
-        fields
+        fields,
+        form,
+        field
+    )
+        local subform = form.resources[
+            field
+        ].form
+        set_current_inventory_form(
+            player,
+            subform
+        )
+        return true
+    end,
+    function(
     )
         local form = new_sub_form(
             "EDUtest > " .. S(
@@ -1880,11 +1957,9 @@ main_menu_form:add_button(
                 end
             )
         end
-        set_current_inventory_form(
-            player,
-            form
-        )
-        return true
+        return {
+            form = form
+        }
     end
 )
 
@@ -1902,7 +1977,20 @@ if rawget(
         function(
             player,
             formname,
-            fields
+            fields,
+            form,
+            field
+        )
+            local subform = form.resources[
+                field
+            ].form
+            set_current_inventory_form(
+                player,
+                subform
+            )
+            return true
+        end,
+        function(
         )
             local form = new_sub_form(
                 "EDUtest > " .. S(
@@ -2074,11 +2162,9 @@ if rawget(
                     return true
                 end
             )
-            set_current_inventory_form(
-                player,
-                form
-            )
-            return true
+            return {
+                form = form
+            }
         end
     )
 end
@@ -2094,7 +2180,20 @@ if edutest.for_all_groups then
         function(
             player,
             formname,
-            fields
+            fields,
+            form,
+            field
+        )
+            local subform = form.resources[
+                field
+            ].form
+            set_current_inventory_form(
+                player,
+                subform
+            )
+            return true
+        end,
+        function(
         )
             local form = new_sub_form(
                 "EDUtest > " .. S(
@@ -2293,11 +2392,9 @@ if edutest.for_all_groups then
                     return true
                 end
             )
-            set_current_inventory_form(
-                player,
-                form
-            )
-            return true
+            return {
+                form = form
+            }
         end
     )
 end
@@ -2312,7 +2409,20 @@ main_menu_form:add_button(
     function(
         player,
         formname,
-        fields
+        fields,
+        form,
+        field
+    )
+        local subform = form.resources[
+            field
+        ].form
+        set_current_inventory_form(
+            player,
+            subform
+        )
+        return true
+    end,
+    function(
     )
         local form = new_sub_form(
             "EDUtest > " .. S(
@@ -2472,11 +2582,9 @@ main_menu_form:add_button(
                 return true
             end
         )
-        set_current_inventory_form(
-            player,
-            form
-        )
-        return true
+        return {
+            form = form
+        }
     end
 )
 
@@ -2490,7 +2598,20 @@ main_menu_form:add_button(
     function(
         player,
         formname,
-        fields
+        fields,
+        form,
+        field
+    )
+        local subform = form.resources[
+            field
+        ].form
+        set_current_inventory_form(
+            player,
+            subform
+        )
+        return true
+    end,
+    function(
     )
         local form = new_sub_form(
             "EDUtest > " .. S(
@@ -2650,11 +2771,9 @@ main_menu_form:add_button(
                 return true
             end
         )
-        set_current_inventory_form(
-            player,
-            form
-        )
-        return true
+        return {
+            form = form
+        }
     end
 )
 
@@ -2671,7 +2790,20 @@ if nil ~= minetest.chatcommands[
         function(
             player,
             formname,
-            fields
+            fields,
+            form,
+            field
+        )
+            local subform = form.resources[
+                field
+            ].form
+            set_current_inventory_form(
+                player,
+                subform
+            )
+            return true
+        end,
+        function(
         )
             local form = new_sub_form(
                 "EDUtest > " .. S(
@@ -2871,11 +3003,9 @@ if nil ~= minetest.chatcommands[
                     return true
                 end
             )
-            set_current_inventory_form(
-                player,
-                form
-            )
-            return true
+            return {
+                form = form
+            }
         end
     )
 end
@@ -2975,7 +3105,9 @@ local on_player_receive_fields = function(
                 return action(
                     player,
                     formname,
-                    fields
+                    fields,
+                    form,
+                    field
                 )
             end
         end
