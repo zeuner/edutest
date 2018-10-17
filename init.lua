@@ -222,7 +222,7 @@ local static_layout = function(
     }
 end
 
-local button_handlers = {
+local player_context_form = {
 }
 
 local S
@@ -335,7 +335,7 @@ local new_main_form = function(
         )
             local name = player:get_player_name(
             )
-            button_handlers[
+            player_context_form[
                 name
             ][
                 "inventory"
@@ -369,31 +369,19 @@ local set_current_form_handlers = function(
     end
     local name = player:get_player_name(
     )
-    if not button_handlers[
+    if not player_context_form[
         name
     ] then
-        button_handlers[
+        player_context_form[
             name
         ] = {
         }
     end
-    button_handlers[
+    player_context_form[
         name
     ][
         installed_context
-    ] = {
-    }
-    for field, action in pairs(
-        form.handlers
-    ) do
-        button_handlers[
-            name
-        ][
-            installed_context
-        ][
-            field
-        ] = action
-    end
+    ] = form
 end
 
 local set_current_inventory_form = function(
@@ -2789,17 +2777,17 @@ local on_player_receive_fields = function(
 )
     local name = player:get_player_name(
     )
-    local contexts = button_handlers[
+    local contexts = player_context_form[
         name
     ]
     if not contexts then
         return false
     end
-    for context, handlers in pairs(
+    for context, form in pairs(
         contexts
     ) do
         for field, action in pairs(
-            handlers
+            form.handlers
         ) do
             if nil ~= fields[
                 field
