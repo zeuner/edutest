@@ -77,10 +77,16 @@ local add_input = function(
     added,
     field
 )
-    local formspec = added(
-        layout
+    form:add_element(
+        function(
+            data
+        )
+            return added(
+                layout,
+                data
+            )
+        end
     )
-    form.formspec = form.formspec .. formspec
     if form.handlers[
         field
     ] then
@@ -97,7 +103,7 @@ local add_input = function(
     end
     form.inputs[
         field
-    ] = formspec
+    ] = field
 end
 
 local add_button = function(
@@ -112,10 +118,17 @@ local add_button = function(
     )
     local height = 1.5
     local size = width .. "," .. height
-    form.formspec = form.formspec .. "button[" .. layout:region_position(
+    local position = layout:region_position(
         width,
         height
-    ) .. ";" .. size .. ";" .. field .. ";" .. label .. "]"
+    )
+    form:add_element(
+        function(
+            data
+        )
+            return "button[" .. position .. ";" .. size .. ";" .. field .. ";" .. label .. "]"
+        end
+    )
     if form.handlers[
         field
     ] then
@@ -145,13 +158,42 @@ local new_form = function(
         add_input = add_input,
         form_id = last_form_id,
         last_field = 0,
+        last_element = 0,
+        add_element = function(
+            self,
+            layout
+        )
+            self.last_element = self.last_element + 1
+            self.formspec_elements[
+                self.last_element
+            ] = layout
+        end,
         new_field = function(
             self
         )
             self.last_field = self.last_field + 1
             return "edutest_field_" .. self.form_id .. "_" .. self.last_field
         end,
-        formspec = "",
+        get_formspec = function(
+            self,
+            name
+        )
+            local formspec = ""
+            for index, element in ipairs(
+                self.formspec_elements
+            ) do
+                formspec = formspec .. element(
+                    self.remembered_fields[
+                        name
+                    ]
+                )
+            end
+            return formspec
+        end,
+        formspec_elements = {
+        },
+        remembered_fields = {
+        },
         handlers = {
         },
         inputs = {
@@ -319,8 +361,20 @@ local new_main_form = function(
 )
     local constructed = new_form(
     )
-    constructed.formspec = constructed.formspec .. "size[11,11]"
-    constructed.formspec = constructed.formspec .. "label[0,0;" .. label .. "]"
+    constructed:add_element(
+        function(
+            data
+        )
+            return "size[11,11]"
+        end
+    )
+    constructed:add_element(
+        function(
+            data
+        )
+            return "label[0,0;" .. label .. "]"
+        end
+    )
     constructed:add_button(
         main_layout,
         constructed:new_field(
@@ -393,7 +447,10 @@ local set_current_inventory_form = function(
         form
     )
     player:set_inventory_formspec(
-        form.formspec
+        form:get_formspec(
+            player:get_player_name(
+            )
+        )
     )
 end
 
@@ -437,9 +494,26 @@ local basic_student_dropdown = function(
     field
 )
     return function(
-        layout
+        layout,
+        data
     )
-        local entries = choose_student_entry
+        local selected_value = ""
+        local selected_index = 1
+        local current_index = 1
+        if data then
+            if data[
+                field
+            ] then
+                selected_value = data[
+                    field
+                ]
+            end
+        end
+        local entry = choose_student_entry
+        if selected_value == entry then
+            selected_index = current_index
+        end
+        local entries = entry
         local max_width = string_width(
             entries
         )
@@ -454,6 +528,10 @@ local basic_student_dropdown = function(
                 if max_width < width then
                     max_width = width
                 end
+                current_index = current_index + 1
+                if selected_value == name then
+                    selected_index = current_index
+                end
                 entries = entries .. "," .. name
             end
         )
@@ -461,7 +539,7 @@ local basic_student_dropdown = function(
         return "dropdown[" .. layout:region_position(
             max_width,
             height
-        ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
+        ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";" .. selected_index .. "]"
     end
 end
 
@@ -469,9 +547,26 @@ local student_dropdown = function(
     field
 )
     return function(
-        layout
+        layout,
+        data
     )
-        local entries = all_students_entry
+        local selected_value = ""
+        local selected_index = 1
+        local current_index = 1
+        if data then
+            if data[
+                field
+            ] then
+                selected_value = data[
+                    field
+                ]
+            end
+        end
+        local entry = all_students_entry
+        if selected_value == entry then
+            selected_index = current_index
+        end
+        local entries = entry
         local max_width = string_width(
             entries
         )
@@ -488,6 +583,10 @@ local student_dropdown = function(
                     if max_width < width then
                         max_width = width
                     end
+                    current_index = current_index + 1
+                    if selected_value == entry then
+                        selected_index = current_index
+                    end
                     entries = entries .. "," .. entry
                 end
             )
@@ -503,6 +602,10 @@ local student_dropdown = function(
                 if max_width < width then
                     max_width = width
                 end
+                current_index = current_index + 1
+                if selected_value == name then
+                    selected_index = current_index
+                end
                 entries = entries .. "," .. name
             end
         )
@@ -510,7 +613,7 @@ local student_dropdown = function(
         return "dropdown[" .. layout:region_position(
             max_width,
             height
-        ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
+        ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";" .. selected_index .. "]"
     end
 end
 
@@ -518,9 +621,26 @@ local basic_student_dropdown_with_groups = function(
     field
 )
     return function(
-        layout
+        layout,
+        data
     )
-        local entries = choose_student_entry
+        local selected_value = ""
+        local selected_index = 1
+        local current_index = 1
+        if data then
+            if data[
+                field
+            ] then
+                selected_value = data[
+                    field
+                ]
+            end
+        end
+        local entry = choose_student_entry
+        if selected_value == entry then
+            selected_index = current_index
+        end
+        local entries = entry
         local max_width = string_width(
             entries
         )
@@ -537,6 +657,10 @@ local basic_student_dropdown_with_groups = function(
                     if max_width < width then
                         max_width = width
                     end
+                    current_index = current_index + 1
+                    if selected_value == entry then
+                        selected_index = current_index
+                    end
                     entries = entries .. "," .. entry
                 end
             )
@@ -552,6 +676,10 @@ local basic_student_dropdown_with_groups = function(
                 if max_width < width then
                     max_width = width
                 end
+                current_index = current_index + 1
+                if selected_value == name then
+                    selected_index = current_index
+                end
                 entries = entries .. "," .. name
             end
         )
@@ -559,7 +687,7 @@ local basic_student_dropdown_with_groups = function(
         return "dropdown[" .. layout:region_position(
             max_width,
             height
-        ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
+        ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";" .. selected_index .. "]"
     end
 end
 
@@ -567,19 +695,41 @@ local group_dropdown = function(
     field
 )
     return function(
-        layout
+        layout,
+        data
     )
-        local entries = choose_group_entry
+        local selected_value = ""
+        local selected_index = 1
+        local current_index = 1
+        if data then
+            if data[
+                field
+            ] then
+                selected_value = data[
+                    field
+                ]
+            end
+        end
+        local entry = choose_group_entry
+        if selected_value == entry then
+            selected_index = current_index
+        end
+        local entries = entry
         local max_width = string_width(
-            entries
+            entry
         )
+        entry = new_group_entry
+        current_index = current_index + 1
+        if selected_value == entry then
+            selected_index = current_index
+        end
         local width = string_width(
-            new_group_entry
+            entry
         )
         if max_width < width then
             max_width = width
         end
-        entries = entries .. "," .. new_group_entry
+        entries = entries .. "," .. entry
         edutest.for_all_groups(
             function(
                 name,
@@ -591,6 +741,10 @@ local group_dropdown = function(
                 if max_width < width then
                     max_width = width
                 end
+                current_index = current_index + 1
+                if selected_value == name then
+                    selected_index = current_index
+                end
                 entries = entries .. "," .. name
             end
         )
@@ -598,7 +752,7 @@ local group_dropdown = function(
         return "dropdown[" .. layout:region_position(
             max_width,
             height
-        ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";1]"
+        ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";" .. selected_index .. "]"
     end
 end
 
@@ -619,8 +773,20 @@ local new_sub_form = function(
     end
     local constructed = new_form(
     )
-    constructed.formspec = constructed.formspec .. "size[" .. size .. "]"
-    constructed.formspec = constructed.formspec .. "label[0,0;" .. label .. "]"
+    constructed:add_element(
+        function(
+            data
+        )
+            return "size[" .. size .. "]"
+        end
+    )
+    constructed:add_element(
+        function(
+            data
+        )
+            return "label[0,0;" .. label .. "]"
+        end
+    )
     constructed:add_button(
         static_layout(
             "0,0.5"
@@ -651,10 +817,22 @@ local highlight_form = new_form(
 if nil ~= edutest.set_highlight_marker_click_handler then
     local highlight_adapting = {
     }
-    highlight_form.formspec = highlight_form.formspec .. "size[7,7]"
-    highlight_form.formspec = highlight_form.formspec .. "label[0,0;" .. S(
-        "Adjust area"
-    ) .. "]"
+    highlight_form:add_element(
+        function(
+            data
+        )
+            return "size[7,7]"
+        end
+    )
+    highlight_form:add_element(
+        function(
+            data
+        )
+            return "label[0,0;" .. S(
+                "Adjust area"
+            ) .. "]"
+        end
+    )
     highlight_form:add_button(
         static_layout(
             "0,0.5"
@@ -961,7 +1139,9 @@ if nil ~= edutest.set_highlight_marker_click_handler then
             minetest.show_formspec(
                 name,
                 "highlight",
-                highlight_form.formspec
+                highlight_form:get_formspec(
+                    name
+                )
             )
         end
     )
@@ -2799,6 +2979,31 @@ local on_player_receive_fields = function(
                 )
             end
         end
+        if fields.quit then
+            set_current_inventory_form(
+                player,
+                form
+            )
+            return true
+        else
+            if not form.remembered_fields[
+                name
+            ] then
+                form.remembered_fields[
+                    name
+                ] = {
+                }
+            end
+            for field_name, field_value in pairs(
+                fields
+            ) do
+                form.remembered_fields[
+                    name
+                ][
+                    field_name
+                ] = field_value
+            end
+        end
     end
     return false
 end
@@ -2818,7 +3023,10 @@ if rawget(
                 player
             )
                 return {
-                    formspec = main_menu_form.formspec,
+                    formspec = main_menu_form:get_formspec(
+                        player:get_player_name(
+                        )
+                    ),
                 }
             end,
         }
@@ -2865,7 +3073,10 @@ elseif rawget(
                 player,
                 context
             )
-                return main_menu_form.formspec
+                return main_menu_form:get_formspec(
+                    player:get_player_name(
+                    )
+                )
             end,
             on_enter = function(
                 self,
