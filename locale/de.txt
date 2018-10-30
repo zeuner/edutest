@@ -33,3 +33,4 @@ New group (enter name below) = Neue Gruppe (Namen unten eingeben)
 Name for new group = Name für neue Gruppe
 not your marker = fremde Markierung
 Toggle invulnerability = Unverwundbarkeit umschalten
+Interaction = Interaktion
