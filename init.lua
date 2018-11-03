@@ -1194,10 +1194,106 @@ if nil ~= minetest.chatcommands[
     teleport_command = "visitation"
 end
 
+local privilege_grant = function(
+    privilege
+)
+    return {
+        privilege = privilege,
+        to_group = function(
+            self,
+            player_name,
+            group_name
+        )
+            minetest.chatcommands[
+                "every_member"
+            ].func(
+                player_name,
+                group_name .. " grant subject " .. self.privilege
+            )
+            return true
+        end,
+        to_students = function(
+            self,
+            player_name
+        )
+            minetest.chatcommands[
+                "every_student"
+            ].func(
+                player_name,
+                "grant subject " .. self.privilege
+            )
+            return true
+        end,
+        to_individual = function(
+            self,
+            player_name,
+            individual_name
+        )
+            minetest.chatcommands[
+                "grant"
+            ].func(
+                player_name,
+                individual_name .. " " .. self.privilege
+            )
+        end
+    }
+end
+
+local privilege_revocation = function(
+    privilege
+)
+    return {
+        privilege = privilege,
+        to_group = function(
+            self,
+            player_name,
+            group_name
+        )
+            minetest.chatcommands[
+                "every_member"
+            ].func(
+                player_name,
+                group_name .. " revoke subject " .. self.privilege
+            )
+            return true
+        end,
+        to_students = function(
+            self,
+            player_name
+        )
+            minetest.chatcommands[
+                "every_student"
+            ].func(
+                player_name,
+                "revoke subject " .. self.privilege
+            )
+            return true
+        end,
+        to_individual = function(
+            self,
+            player_name,
+            individual_name
+        )
+            minetest.chatcommands[
+                "revoke"
+            ].func(
+                player_name,
+                individual_name .. " " .. self.privilege
+            )
+        end
+    }
+end
+
 local add_privilege_button = function(
     label,
     privilege
 )
+    local grant = privilege_grant(
+        privilege
+    )
+    local revocation = privilege_revocation(
+        privilege
+    )
     main_menu_form:add_button(
         main_layout,
         main_menu_form:new_field(
@@ -1276,34 +1372,24 @@ local add_privilege_button = function(
                                 group_prefix
                             ) + 1
                         )
-                        minetest.chatcommands[
-                            "every_member"
-                        ].func(
+                        return grant:to_group(
                             name,
-                            group_name .. " grant subject " .. privilege
+                            group_name
                         )
-                        return true
                     end
                     if all_students_entry == fields[
                         subject
                     ] then
-                        minetest.chatcommands[
-                            "every_student"
-                        ].func(
-                            name,
-                            "grant subject " .. privilege
+                        return grant:to_students(
+                            name
                         )
-                        return true
                     end
-                    minetest.chatcommands[
-                        "grant"
-                    ].func(
+                    return grant:to_individual(
                         name,
                         fields[
                             subject
-                        ] .. " " .. privilege
+                        ]
                     )
-                    return true
                 end
             )
             form:add_button(
@@ -1347,32 +1433,23 @@ local add_privilege_button = function(
                                 group_prefix
                             ) + 1
                         )
-                        minetest.chatcommands[
-                            "every_member"
-                        ].func(
+                        return revocation:to_group(
                             name,
-                            group_name .. " revoke subject " .. privilege
+                            group_name
                         )
-                        return true
                     end
                     if all_students_entry == fields[
                         subject
                     ] then
-                        minetest.chatcommands[
-                            "every_student"
-                        ].func(
-                            name,
-                            "revoke subject " .. privilege
+                        return revocation:to_students(
+                            name
                         )
-                        return true
                     end
-                    minetest.chatcommands[
-                        "revoke"
-                    ].func(
+                    return revocation:to_individual(
                         name,
                         fields[
                             subject
-                        ] .. " " .. privilege
+                        ]
                     )
                     return true
                 end
