@@ -1451,7 +1451,6 @@ local add_privilege_button = function(
                             subject
                         ]
                     )
-                    return true
                 end
             )
             return {
