@@ -1194,6 +1194,58 @@ if nil ~= minetest.chatcommands[
     teleport_command = "visitation"
 end
 
+local player_name_function_passing = function(
+    called
+)
+    return {
+        called = called,
+        to_group = function(
+            self,
+            player_name,
+            group_name
+        )
+            edutest.for_all_members(
+                group_name,
+                function(
+                    player,
+                    name
+                )
+                    self.called(
+                        name
+                    )
+                end
+            )
+            return true
+        end,
+        to_students = function(
+            self,
+            player_name
+        )
+            edutest.for_all_students(
+                function(
+                    player,
+                    name
+                )
+                    self.called(
+                        name
+                    )
+                end
+            )
+            return true
+        end,
+        to_individual = function(
+            self,
+            player_name,
+            individual_name
+        )
+            self.called(
+                individual_name
+            )
+            return true
+        end
+    }
+end
+
 local unary_command_application = function(
     command
 )
@@ -1985,205 +2037,22 @@ if rawget(
     _G,
     "pvpplus"
 ) then
-    main_menu_form:add_button(
-        main_layout,
-        main_menu_form:new_field(
-        ),
+    add_enabling_button(
         S(
             "PvP"
         ),
-        function(
-            player,
-            formname,
-            fields,
-            form,
-            field
+        S(
+            "Enable"
+        ),
+        player_name_function_passing(
+            pvpplus.pvp_enable
+        ),
+        S(
+            "Disable"
+        ),
+        player_name_function_passing(
+            pvpplus.pvp_disable
         )
-            local subform = form.resources[
-                field
-            ].form
-            set_current_inventory_form(
-                player,
-                subform
-            )
-            return true
-        end,
-        function(
-        )
-            local form = new_sub_form(
-                "EDUtest > " .. S(
-                    "PvP"
-                )
-            )
-            local subject = form:new_field(
-            )
-            form:add_input(
-                static_layout(
-                    "0,2"
-                ),
-                student_dropdown(
-                    subject
-                ),
-                subject
-            )
-            form:add_button(
-                static_layout(
-                    "0,3"
-                ),
-                form:new_field(
-                ),
-                S(
-                    "Enable"
-                ),
-                function(
-                    player,
-                    formname,
-                    fields
-                )
-                    local name = player:get_player_name(
-                    )
-                    if false == check_field(
-                        name,
-                        formname,
-                        fields,
-                        subject
-                    ) then
-                        return false
-                    end
-                    if group_prefix == string.sub(
-                        fields[
-                            subject
-                        ],
-                        1,
-                        string.len(
-                            group_prefix
-                        )
-                    ) then
-                        local group_name = string.sub(
-                            fields[
-                                subject
-                            ],
-                            string.len(
-                                group_prefix
-                            ) + 1
-                        )
-                        edutest.for_all_members(
-                            group_name,
-                            function(
-                                player,
-                                name
-                            )
-                                pvpplus.pvp_enable(
-                                    name
-                                )
-                            end
-                        )
-                        return true
-                    end
-                    if all_students_entry == fields[
-                        subject
-                    ] then
-                        edutest.for_all_students(
-                            function(
-                                player,
-                                name
-                            )
-                                pvpplus.pvp_enable(
-                                    name
-                                )
-                            end
-                        )
-                        return true
-                    end
-                    pvpplus.pvp_enable(
-                        fields[
-                            subject
-                        ]
-                    )
-                    return true
-                end
-            )
-            form:add_button(
-                static_layout(
-                    "3,3"
-                ),
-                form:new_field(
-                ),
-                S(
-                    "Disable"
-                ),
-                function(
-                    player,
-                    formname,
-                    fields
-                )
-                    local name = player:get_player_name(
-                    )
-                    if false == check_field(
-                        name,
-                        formname,
-                        fields,
-                        subject
-                    ) then
-                        return false
-                    end
-                    if group_prefix == string.sub(
-                        fields[
-                            subject
-                        ],
-                        1,
-                        string.len(
-                            group_prefix
-                        )
-                    ) then
-                        local group_name = string.sub(
-                            fields[
-                                subject
-                            ],
-                            string.len(
-                                group_prefix
-                            ) + 1
-                        )
-                        edutest.for_all_members(
-                            group_name,
-                            function(
-                                player,
-                                name
-                            )
-                                pvpplus.pvp_disable(
-                                    name
-                                )
-                            end
-                        )
-                        return true
-                    end
-                    if all_students_entry == fields[
-                        subject
-                    ] then
-                        edutest.for_all_students(
-                            function(
-                                player,
-                                name
-                            )
-                                pvpplus.pvp_disable(
-                                    name
-                                )
-                            end
-                        )
-                        return true
-                    end
-                    pvpplus.pvp_disable(
-                        fields[
-                            subject
-                        ]
-                    )
-                    return true
-                end
-            )
-            return {
-                form = form
-            }
-        end
     )
 end
 
