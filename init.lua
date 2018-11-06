@@ -1448,6 +1448,40 @@ local sequential_operation = function(
     }
 end
 
+local apply_operation = function(
+    player_name,
+    applied,
+    target
+)
+    if group_prefix == string.sub(
+        target,
+        1,
+        string.len(
+            group_prefix
+        )
+    ) then
+        local group_name = string.sub(
+            target,
+            string.len(
+                group_prefix
+            ) + 1
+        )
+        return applied:to_group(
+            player_name,
+            group_name
+        )
+    end
+    if all_students_entry == target then
+        return applied:to_students(
+            player_name
+        )
+    end
+    return applied:to_individual(
+        player_name,
+        target
+    )
+end
+
 local add_enabling_button = function(
     label,
     enable_label,
@@ -1514,37 +1548,9 @@ local add_enabling_button = function(
                     ) then
                         return false
                     end
-                    if group_prefix == string.sub(
-                        fields[
-                            subject
-                        ],
-                        1,
-                        string.len(
-                            group_prefix
-                        )
-                    ) then
-                        local group_name = string.sub(
-                            fields[
-                                subject
-                            ],
-                            string.len(
-                                group_prefix
-                            ) + 1
-                        )
-                        return enabling:to_group(
-                            name,
-                            group_name
-                        )
-                    end
-                    if all_students_entry == fields[
-                        subject
-                    ] then
-                        return enabling:to_students(
-                            name
-                        )
-                    end
-                    return enabling:to_individual(
+                    return apply_operation(
                         name,
+                        enabling,
                         fields[
                             subject
                         ]
@@ -1573,37 +1579,9 @@ local add_enabling_button = function(
                     ) then
                         return false
                     end
-                    if group_prefix == string.sub(
-                        fields[
-                            subject
-                        ],
-                        1,
-                        string.len(
-                            group_prefix
-                        )
-                    ) then
-                        local group_name = string.sub(
-                            fields[
-                                subject
-                            ],
-                            string.len(
-                                group_prefix
-                            ) + 1
-                        )
-                        return disabling:to_group(
-                            name,
-                            group_name
-                        )
-                    end
-                    if all_students_entry == fields[
-                        subject
-                    ] then
-                        return disabling:to_students(
-                            name
-                        )
-                    end
-                    return disabling:to_individual(
+                    return apply_operation(
                         name,
+                        disabling,
                         fields[
                             subject
                         ]
