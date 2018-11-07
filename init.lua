@@ -1957,46 +1957,11 @@ main_menu_form:add_button(
                     ) then
                         return false
                     end
-                    if group_prefix == string.sub(
-                        fields[
-                            subject
-                        ],
-                        1,
-                        string.len(
-                            group_prefix
-                        )
-                    ) then
-                        local group_name = string.sub(
-                            fields[
-                                subject
-                            ],
-                            string.len(
-                                group_prefix
-                            ) + 1
-                        )
-                        minetest.chatcommands[
-                            "every_member"
-                        ].func(
-                            name,
-                            group_name .. " return subject"
-                        )
-                        return true
-                    end
-                    if all_students_entry == fields[
-                        subject
-                    ] then
-                        minetest.chatcommands[
-                            "every_student"
-                        ].func(
-                            name,
-                            "return subject"
-                        )
-                        return true
-                    end
-                    minetest.chatcommands[
-                        "return"
-                    ].func(
+                    return apply_operation(
                         name,
+                        unary_command_application(
+                            "return"
+                        ),
                         fields[
                             subject
                         ]
