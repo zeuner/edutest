@@ -1966,7 +1966,6 @@ main_menu_form:add_button(
                             subject
                         ]
                     )
-                    return true
                 end
             )
         end
