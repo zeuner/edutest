@@ -1992,6 +1992,160 @@ if rawget(
     )
 end
 
+if nil ~= minetest.chatcommands[
+    "notify"
+] then
+    main_menu_form:add_button(
+        main_layout,
+        main_menu_form:new_field(
+        ),
+        S(
+            "Notify players"
+        ),
+        function(
+            player,
+            formname,
+            fields,
+            form,
+            field
+        )
+            local subform = form.resources[
+                field
+            ].form
+            set_current_inventory_form(
+                player,
+                subform
+            )
+            return true
+        end,
+        function(
+        )
+            local form = new_sub_form(
+                "EDUtest > " .. S(
+                    "Notify players"
+                ),
+                7,
+                8
+            )
+            local subject = form:new_field(
+            )
+            form:add_input(
+                static_layout(
+                    "0,2"
+                ),
+                student_dropdown(
+                    subject
+                ),
+                subject
+            )
+            local notification = form:new_field(
+            )
+            form:add_input(
+                static_layout(
+                    "0.5,5"
+                ),
+                text_field(
+                    notification,
+                    6,
+                    1,
+                    S(
+                        "Notification"
+                    )
+                ),
+                notification
+            )
+            form:add_button(
+                static_layout(
+                    "0,6"
+                ),
+                form:new_field(
+                ),
+                S(
+                    "Send"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields
+                )
+                    local name = player:get_player_name(
+                    )
+                    if false == check_field(
+                        name,
+                        formname,
+                        fields,
+                        subject
+                    ) then
+                        return false
+                    end
+                    if false == check_field(
+                        name,
+                        formname,
+                        fields,
+                        notification
+                    ) then
+                        return false
+                    end
+                    if group_prefix == string.sub(
+                        fields[
+                            subject
+                        ],
+                        1,
+                        string.len(
+                            group_prefix
+                        )
+                    ) then
+                        local group_name = string.sub(
+                            fields[
+                                subject
+                            ],
+                            string.len(
+                                group_prefix
+                            ) + 1
+                        )
+                        minetest.chatcommands[
+                            "every_member"
+                        ].func(
+                            name,
+                            group_name .. " notify subject " .. fields[
+                                notification
+                            ]
+                        )
+                        return true
+                    end
+                    if all_students_entry == fields[
+                        subject
+                    ] then
+                        minetest.chatcommands[
+                            "every_student"
+                        ].func(
+                            name,
+                            "notify subject " .. fields[
+                                notification
+                            ]
+                        )
+                        return true
+                    end
+                    minetest.chatcommands[
+                        "notify"
+                    ].func(
+                        name,
+                        fields[
+                            subject
+                        ] .. " " .. fields[
+                            notification
+                        ]
+                    )
+                    return true
+                end
+            )
+            return {
+                form = form
+            }
+        end
+    )
+end
+
 if edutest.for_all_groups then
     main_menu_form:add_button(
         main_layout,

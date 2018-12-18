@@ -34,3 +34,6 @@ Name for new group = Name für neue Gruppe
 not your marker = fremde Markierung
 Toggle invulnerability = Unverwundbarkeit umschalten
 Interaction = Interaktion
+Notify players = Spieler benachrichtigen
+Notification = Nachricht
+Send = Abschicken
