@@ -27,3 +27,4 @@ granted the "teacher" privilege.
 * invis (https://github.com/octacian/minetest-mod-invis)
 * areas (https://github.com/ShadowNinja/areas)
 * invincibility (https://github.com/zeuner/invincibility)
+* hud_notify (https://github.com/ClobberXD/hud_notify)
