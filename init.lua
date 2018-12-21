@@ -2693,6 +2693,67 @@ if nil ~= minetest.chatcommands[
     )
 end
 
+main_menu_form:add_button(
+    main_layout,
+    main_menu_form:new_field(
+    ),
+    S(
+        "Toggle sun movement"
+    ),
+    function(
+        player,
+        formname,
+        fields
+    )
+        local own_name = player:get_player_name(
+        )
+        if not minetest.check_player_privs(
+            own_name,
+            {
+                server = true,
+            }
+        ) then
+            minetest.chat_send_player(
+                own_name,
+                "EDUtest: " .. string.format(
+                    S(
+                        "missing privilege: %s"
+                    ),
+                    "server"
+                )
+            )
+            return true
+        end
+        local old_value = minetest.settings:get(
+            "time_speed"
+        )
+        if "0" == old_value then
+            minetest.chat_send_player(
+                own_name,
+                "EDUtest: " .. S(
+                    "sun movement enabled"
+                )
+            )
+            minetest.settings:set(
+                "time_speed",
+                "72"
+            )
+        else
+            minetest.chat_send_player(
+                own_name,
+                "EDUtest: " .. S(
+                    "sun movement disabled"
+                )
+            )
+            minetest.settings:set(
+                "time_speed",
+               "0"
+            )
+        end
+        return true
+    end
+)
+
 local on_player_receive_fields = function(
     player,
     formname,

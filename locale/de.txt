@@ -37,3 +37,7 @@ Interaction = Interaktion
 Notify players = Spieler benachrichtigen
 Notification = Nachricht
 Send = Abschicken
+Toggle sun movement = Sonnenbewegung umschalten
+missing privilege: %s = Fehlendes Privileg: %s
+sun movement enabled = Sonnenbewegung eingeschaltet
+sun movement disabled = Sonnenbewegung ausgeschaltet
