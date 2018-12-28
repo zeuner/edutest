@@ -7,3 +7,5 @@ intllib?
 areas?
 invis?
 lottinventory?
+invincibility?
+hud_notify?
