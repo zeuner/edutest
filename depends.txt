@@ -8,3 +8,4 @@ areas?
 invis?
 invincibility?
 hud_notify?
+clothes?

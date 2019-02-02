@@ -2767,6 +2767,7 @@ local on_player_receive_fields = function(
     if not contexts then
         return false
     end
+    local active_form = nil
     for context, form in pairs(
         contexts
     ) do
@@ -2803,6 +2804,11 @@ local on_player_receive_fields = function(
             for field_name, field_value in pairs(
                 fields
             ) do
+                if form.inputs[
+                    field_name
+                ] then
+                    active_form = form
+                end
                 form.remembered_fields[
                     name
                 ][
@@ -2810,6 +2816,12 @@ local on_player_receive_fields = function(
                 ] = field_value
             end
         end
+    end
+    if active_form then
+        set_current_inventory_form(
+            player,
+            active_form
+        )
     end
     return false
 end
