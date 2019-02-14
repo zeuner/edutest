@@ -303,6 +303,17 @@ local default_inventory_page
 
 local set_inventory_page
 
+local features_installed = {
+}
+
+if minetest.global_exists(
+    "clothes"
+) then
+    features_installed[
+        "clothes"
+    ] = true
+end
+
 if rawget(
     _G,
     "unified_inventory"
@@ -2817,11 +2828,15 @@ local on_player_receive_fields = function(
             end
         end
     end
-    if active_form then
-        set_current_inventory_form(
-            player,
-            active_form
-        )
+    if features_installed[
+        "clothes"
+    ] then
+        if active_form then
+            set_current_inventory_form(
+                player,
+                active_form
+            )
+        end
     end
     return false
 end
