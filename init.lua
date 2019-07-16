@@ -830,6 +830,171 @@ end
 local highlight_form = new_form(
 )
 
+local make_form_persistent = function(
+    manipulated
+)
+    manipulated.handlers.quit = function(
+        player,
+        formname,
+        fields,
+        form,
+        field
+    )
+        local name = player:get_player_name(
+        )
+        minetest.after(
+            0,
+            function(
+            )
+                set_current_form_handlers(
+                    player,
+                    form,
+                    "lock"
+                )
+                minetest.show_formspec(
+                    name,
+                    "lock",
+                    form:get_formspec(
+                        name
+                    )
+                )
+            end
+        )
+        return true
+    end
+end
+
+local new_persistent_message_form = function(
+    message
+)
+    local lock_form = new_form(
+    )
+    lock_form:add_element(
+        function(
+            data
+        )
+            return "size[7,7]"
+        end
+    )
+    lock_form:add_element(
+        function(
+            data
+        )
+            return "label[0,0;" .. message .. "]"
+        end
+    )
+    make_form_persistent(
+        lock_form
+    )
+    return lock_form
+end
+
+minetest.register_chatcommand(
+    "unlock_screen",
+    {
+        params = "[" .. S(
+            "player name"
+        ) .. "]",
+        description = S(
+            "unlock a player's screen"
+        ),
+        privs = {
+            privs = true,
+        },
+        func = function(
+            own_name,
+            param
+        )
+            local name, message = edutest.split_command(
+                param
+            )
+            local lock_form = new_persistent_message_form(
+                message
+            )
+            lock_form:add_button(
+                static_layout(
+                    "0,1.0"
+                ),
+                closable_lock_form:new_field(
+                ),
+                S(
+                    "Close"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields,
+                    form
+                )
+                    local name = player:get_player_name(
+                    )
+                    minetest.close_formspec(
+                        name,
+                        "lock"
+                    )
+                    return true
+                end
+            )
+            local locked = minetest.get_player_by_name(
+                name
+            )
+            set_current_form_handlers(
+                locked,
+                closable_lock_form,
+                "lock"
+            )
+            minetest.show_formspec(
+                name,
+                "lock",
+                closable_lock_form:get_formspec(
+                    name
+                )
+            )
+        end
+    }
+)
+
+minetest.register_chatcommand(
+    "lock_screen",
+    {
+        params = "[" .. S(
+            "player name"
+        ) .. "]",
+        description = S(
+            "lock a player's screen"
+        ),
+        privs = {
+            privs = true,
+        },
+        func = function(
+            own_name,
+            param
+        )
+            local name, message = edutest.split_command(
+                param
+            )
+            local lock_form = new_persistent_message_form(
+                message
+            )
+            local locked = minetest.get_player_by_name(
+                name
+            )
+            set_current_form_handlers(
+                locked,
+                lock_form,
+                "lock"
+            )
+            minetest.show_formspec(
+                name,
+                "lock",
+                lock_form:get_formspec(
+                    name
+                )
+            )
+        end
+    }
+)
+
 if nil ~= edutest.set_highlight_marker_click_handler then
     local highlight_adapting = {
     }
