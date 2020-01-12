@@ -489,6 +489,10 @@ local group_prefix = S(
     "Group"
 ) .. " "
 
+local enabled_prefix = "* "
+
+local disabled_prefix = "  "
+
 local text_field = function(
     field,
     width,
@@ -558,8 +562,39 @@ local basic_student_dropdown = function(
     end
 end
 
+local always_enabled = function(
+    name
+)
+    return true
+end
+
+local always_disabled = function(
+    name
+)
+    return false
+end
+
+local privilege_check = function(
+    privilege
+)
+    local required = {
+    }
+    required[
+        privilege
+    ] = true
+    return function(
+        name
+    )
+        return minetest.check_player_privs(
+            name,
+            required
+        )
+    end
+end
+
 local student_dropdown = function(
-    field
+    field,
+    enabled_check
 )
     return function(
         layout,
@@ -611,17 +646,26 @@ local student_dropdown = function(
                 player,
                 name
             )
-                local width = string_width(
+                local prefix
+                if enabled_check(
                     name
+                ) then
+                    prefix = enabled_prefix
+                else
+                    prefix = disabled_prefix
+                end
+                local entry = prefix .. name
+                local width = string_width(
+                    entry
                 )
                 if max_width < width then
                     max_width = width
                 end
                 current_index = current_index + 1
-                if selected_value == name then
+                if selected_value == entry then
                     selected_index = current_index
                 end
-                entries = entries .. "," .. name
+                entries = entries .. "," .. entry
             end
         )
         local height = 1.5
@@ -1470,6 +1514,42 @@ local apply_operation = function(
             player_name
         )
     end
+    if enabled_prefix == string.sub(
+        target,
+        1,
+        string.len(
+            enabled_prefix
+        )
+    ) then
+        local target_player = string.sub(
+            target,
+            string.len(
+                enabled_prefix
+            ) + 1
+        )
+        return applied:to_individual(
+            player_name,
+            target_player
+        )
+    end
+    if disabled_prefix == string.sub(
+        target,
+        1,
+        string.len(
+            disabled_prefix
+        )
+    ) then
+        local target_player = string.sub(
+            target,
+            string.len(
+                disabled_prefix
+            ) + 1
+        )
+        return applied:to_individual(
+            player_name,
+            target_player
+        )
+    end
     return applied:to_individual(
         player_name,
         target
@@ -1481,7 +1561,8 @@ local add_enabling_button = function(
     enable_label,
     enabling,
     disable_label,
-    disabling
+    disabling,
+    enabled_check
 )
     main_menu_form:add_button(
         main_layout,
@@ -1516,7 +1597,8 @@ local add_enabling_button = function(
                     "0,2"
                 ),
                 student_dropdown(
-                    subject
+                    subject,
+                    enabled_check
                 ),
                 subject
             )
@@ -1608,7 +1690,10 @@ local add_privilege_button = function(
         S(
             "Disable"
         ),
-        revocation
+        revocation,
+        privilege_check(
+            privilege
+        )
     )
 end
 
@@ -1635,6 +1720,9 @@ if nil ~= minetest.chatcommands[
             privilege_grant(
                 "interact"
             )
+        ),
+        edutest.tracked_command_enabled(
+            "freeze"
         )
     )
 else
@@ -1674,6 +1762,9 @@ if nil ~= minetest.chatcommands[
             privilege_revocation(
                 "creative"
             )
+        ),
+        privilege_check(
+            "creative"
         )
     )
 else
@@ -1691,6 +1782,9 @@ else
             "Disable"
         ),
         privilege_revocation(
+            "creative"
+        ),
+        privilege_check(
             "creative"
         )
     )
@@ -1849,7 +1943,8 @@ main_menu_form:add_button(
                 "0,2"
             ),
             student_dropdown(
-                subject
+                subject,
+                always_disabled
             ),
             subject
         )
@@ -1988,7 +2083,8 @@ if rawget(
         ),
         player_name_function_passing(
             pvpplus.pvp_disable
-        )
+        ),
+        pvpplus.is_pvp
     )
 end
 
@@ -2034,7 +2130,8 @@ if nil ~= minetest.chatcommands[
                     "0,2"
                 ),
                 student_dropdown(
-                    subject
+                    subject,
+                    always_disabled
                 ),
                 subject
             )
