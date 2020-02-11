@@ -461,11 +461,12 @@ local set_current_inventory_form = function(
         player,
         form
     )
-    player:set_inventory_formspec(
-        form:get_formspec(
-            player:get_player_name(
-            )
+    local definition = form:get_formspec(
+        player:get_player_name(
         )
+    )
+    player:set_inventory_formspec(
+        definition
     )
 end
 
@@ -492,6 +493,40 @@ local group_prefix = S(
 local enabled_prefix = "* "
 
 local disabled_prefix = "  "
+
+local without_prefix = function(
+    prefixed
+)
+    if enabled_prefix == string.sub(
+        prefixed,
+        1,
+        string.len(
+            enabled_prefix
+        )
+    ) then
+        return string.sub(
+            prefixed,
+            string.len(
+                enabled_prefix
+            ) + 1
+        )
+    end
+    if disabled_prefix == string.sub(
+        prefixed,
+        1,
+        string.len(
+            disabled_prefix
+        )
+    ) then
+        return string.sub(
+            prefixed,
+            string.len(
+                disabled_prefix
+            ) + 1
+        )
+    end
+    return prefixed
+end
 
 local text_field = function(
     field,
@@ -529,7 +564,11 @@ local basic_student_dropdown = function(
             end
         end
         local entry = choose_student_entry
-        if selected_value == entry then
+        if without_prefix(
+            selected_value
+        ) == without_prefix(
+            entry
+        ) then
             selected_index = current_index
         end
         local entries = entry
@@ -548,7 +587,11 @@ local basic_student_dropdown = function(
                     max_width = width
                 end
                 current_index = current_index + 1
-                if selected_value == name then
+                if without_prefix(
+                    selected_value
+                ) == without_prefix(
+                    name
+                ) then
                     selected_index = current_index
                 end
                 entries = entries .. "," .. name
@@ -613,7 +656,11 @@ local student_dropdown = function(
             end
         end
         local entry = all_students_entry
-        if selected_value == entry then
+        if without_prefix(
+            selected_value
+        ) == without_prefix(
+            entry
+        ) then
             selected_index = current_index
         end
         local entries = entry
@@ -634,7 +681,11 @@ local student_dropdown = function(
                         max_width = width
                     end
                     current_index = current_index + 1
-                    if selected_value == entry then
+                    if without_prefix(
+                        selected_value
+                    ) == without_prefix(
+                        entry
+                    ) then
                         selected_index = current_index
                     end
                     entries = entries .. "," .. entry
@@ -662,7 +713,11 @@ local student_dropdown = function(
                     max_width = width
                 end
                 current_index = current_index + 1
-                if selected_value == entry then
+                if without_prefix(
+                    selected_value
+                ) == without_prefix(
+                    entry
+                ) then
                     selected_index = current_index
                 end
                 entries = entries .. "," .. entry
@@ -696,7 +751,11 @@ local basic_student_dropdown_with_groups = function(
             end
         end
         local entry = choose_student_entry
-        if selected_value == entry then
+        if without_prefix(
+            selected_value
+        ) == without_prefix(
+            entry
+        ) then
             selected_index = current_index
         end
         local entries = entry
@@ -717,7 +776,11 @@ local basic_student_dropdown_with_groups = function(
                         max_width = width
                     end
                     current_index = current_index + 1
-                    if selected_value == entry then
+                    if without_prefix(
+                        selected_value
+                    ) == without_prefix(
+                        entry
+                    ) then
                         selected_index = current_index
                     end
                     entries = entries .. "," .. entry
@@ -736,7 +799,11 @@ local basic_student_dropdown_with_groups = function(
                     max_width = width
                 end
                 current_index = current_index + 1
-                if selected_value == name then
+                if without_prefix(
+                    selected_value
+                ) == without_prefix(
+                    name
+                ) then
                     selected_index = current_index
                 end
                 entries = entries .. "," .. name
@@ -770,7 +837,11 @@ local group_dropdown = function(
             end
         end
         local entry = choose_group_entry
-        if selected_value == entry then
+        if without_prefix(
+            selected_value
+        ) == without_prefix(
+            entry
+        ) then
             selected_index = current_index
         end
         local entries = entry
@@ -778,8 +849,11 @@ local group_dropdown = function(
             entry
         )
         entry = new_group_entry
-        current_index = current_index + 1
-        if selected_value == entry then
+        if without_prefix(
+            selected_value
+        ) == without_prefix(
+            entry
+        ) then
             selected_index = current_index
         end
         local width = string_width(
@@ -801,7 +875,11 @@ local group_dropdown = function(
                     max_width = width
                 end
                 current_index = current_index + 1
-                if selected_value == name then
+                if without_prefix(
+                    selected_value
+                ) == without_prefix(
+                    name
+                ) then
                     selected_index = current_index
                 end
                 entries = entries .. "," .. name
@@ -1514,45 +1592,11 @@ local apply_operation = function(
             player_name
         )
     end
-    if enabled_prefix == string.sub(
-        target,
-        1,
-        string.len(
-            enabled_prefix
-        )
-    ) then
-        local target_player = string.sub(
-            target,
-            string.len(
-                enabled_prefix
-            ) + 1
-        )
-        return applied:to_individual(
-            player_name,
-            target_player
-        )
-    end
-    if disabled_prefix == string.sub(
-        target,
-        1,
-        string.len(
-            disabled_prefix
-        )
-    ) then
-        local target_player = string.sub(
-            target,
-            string.len(
-                disabled_prefix
-            ) + 1
-        )
-        return applied:to_individual(
-            player_name,
-            target_player
-        )
-    end
     return applied:to_individual(
         player_name,
-        target
+        without_prefix(
+            target
+        )
     )
 end
 
@@ -1624,13 +1668,18 @@ local add_enabling_button = function(
                     ) then
                         return false
                     end
-                    return apply_operation(
+                    local result = apply_operation(
                         name,
                         enabling,
                         fields[
                             subject
                         ]
                     )
+                    set_current_inventory_form(
+                        player,
+                        form
+                    )
+                    return result
                 end
             )
             form:add_button(
@@ -1655,13 +1704,18 @@ local add_enabling_button = function(
                     ) then
                         return false
                     end
-                    return apply_operation(
+                    local result = apply_operation(
                         name,
                         disabling,
                         fields[
                             subject
                         ]
                     )
+                    set_current_inventory_form(
+                        player,
+                        form
+                    )
+                    return result
                 end
             )
             return {
