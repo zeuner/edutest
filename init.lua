@@ -635,6 +635,85 @@ local privilege_check = function(
     end
 end
 
+local student_table = function(
+    field,
+    enabled_check1,
+    enabled_check2
+)
+    return function(
+        layout,
+        data
+    )
+        local selected_index = 1
+        if data then
+            if data[
+                field
+            ] then
+                local exploded = minetest.explode_table_event(
+                    data[
+                        field
+                    ]
+                )
+                for k,v in pairs(
+                    exploded
+                ) do
+                    print(
+                        "EDUtest table event field: " .. k .. " | " .. v
+                    )
+                end
+            end
+        end
+        local entries = ""
+        local delimiter = ""
+        local max_width = string_width(
+            entries
+        )
+        edutest.for_all_students(
+            function(
+                player,
+                name
+            )
+                local width = string_width(
+                    name
+                )
+                local entry = name
+                if enabled_check1(
+                    name
+                ) then
+                    entry = entry .. ",#00FF00," .. S(
+                        "yes"
+                    )
+                else
+                    entry = entry .. ",#FF0000," .. S(
+                        "no"
+                    )
+                end
+                if enabled_check2(
+                    name
+                ) then
+                    entry = entry .. ",#00FF00," .. S(
+                        "yes"
+                    )
+                else
+                    entry = entry .. ",#FF0000," .. S(
+                        "no"
+                    )
+                end
+                if max_width < width then
+                    max_width = width
+                end
+                entries = entries .. delimiter .. entry
+                delimiter = ","
+            end
+        )
+        local height = 1.5
+        return "tablecolumns[text;color;text;color;text]table[" .. layout:region_position(
+            max_width,
+            height
+        ) .. ";" .. max_width .. ",3;" .. field .. ";" .. entries .. ";" .. selected_index .. "]"
+    end
+end
+
 local student_dropdown = function(
     field,
     enabled_check
@@ -1843,6 +1922,59 @@ else
         )
     )
 end
+
+main_menu_form:add_button(
+    main_layout,
+    main_menu_form:new_field(
+    ),
+    S(
+        "Table test"
+    ),
+    function(
+        player,
+        formname,
+        fields,
+        form,
+        field
+    )
+        local subform = form.resources[
+            field
+        ].form
+        set_current_inventory_form(
+            player,
+            subform
+        )
+        return true
+    end,
+    function(
+    )
+        local form = new_sub_form(
+            "EDUtest > " .. S(
+                "Table test"
+            )
+        )
+        local subject = form:new_field(
+        )
+        form:add_input(
+            static_layout(
+                "0,2"
+            ),
+            student_table(
+                subject,
+                privilege_check(
+                    "interact"
+                ),
+                privilege_check(
+                    "fly"
+                )
+            ),
+            subject
+        )
+        return {
+            form = form
+        }
+    end
+)
 
 main_menu_form:add_button(
     main_layout,
