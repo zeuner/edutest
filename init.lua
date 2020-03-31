@@ -75,7 +75,8 @@ local add_input = function(
     form,
     layout,
     added,
-    field
+    field,
+    handler
 )
     form:add_element(
         function(
@@ -104,6 +105,9 @@ local add_input = function(
     form.inputs[
         field
     ] = field
+    form.handlers[
+        field
+    ] = handler
 end
 
 local add_button = function(
@@ -635,10 +639,35 @@ local privilege_check = function(
     end
 end
 
+local boolean_column_width = function(
+    title
+)
+    local max_width = string_width(
+        title
+    )
+    local next_width = string_width(
+        S(
+            "yes"
+        )
+    )
+    if next_width > max_width then
+        max_width = next_width
+    end
+    local next_width = string_width(
+        S(
+            "no"
+        )
+    )
+    if next_width > max_width then
+        max_width = next_width
+    end
+    return max_width
+end
+
 local student_table = function(
     field,
-    enabled_check1,
-    enabled_check2
+    column1,
+    column2
 )
     return function(
         layout,
@@ -658,7 +687,7 @@ local student_table = function(
                     exploded
                 ) do
                     print(
-                        "EDUtest table event field: " .. k .. " | " .. v
+                        "EDUtest table event field a: " .. k .. " | " .. v
                     )
                 end
             end
@@ -677,7 +706,7 @@ local student_table = function(
                     name
                 )
                 local entry = name
-                if enabled_check1(
+                if column1.check(
                     name
                 ) then
                     entry = entry .. ",#00FF00," .. S(
@@ -688,7 +717,7 @@ local student_table = function(
                         "no"
                     )
                 end
-                if enabled_check2(
+                if column2.check(
                     name
                 ) then
                     entry = entry .. ",#00FF00," .. S(
@@ -707,10 +736,18 @@ local student_table = function(
             end
         )
         local height = 1.5
-        return "tablecolumns[text;color;text;color;text]table[" .. layout:region_position(
-            max_width,
+        local full_width = max_width + boolean_column_width(
+            column1.title
+        ) + boolean_column_width(
+            column2.title
+        )
+        local position = layout:region_position(
+            full_width,
             height
-        ) .. ";" .. max_width .. ",3;" .. field .. ";" .. entries .. ";" .. selected_index .. "]"
+        )
+        return "tablecolumns[text;color;text;color;text]table[" .. position .. ";" .. full_width .. ",5;" .. field .. ";" .. S(
+            "Name"
+        ) .. ",#FFFFFF," .. column1.title .. ",#FFFFFF," .. column2.title .. "," .. entries .. ";" .. selected_index .. "]"
     end
 end
 
@@ -1961,14 +1998,53 @@ main_menu_form:add_button(
             ),
             student_table(
                 subject,
-                privilege_check(
-                    "interact"
-                ),
-                privilege_check(
-                    "fly"
-                )
+                {
+                    check = privilege_check(
+                        "interact"
+                    ),
+                    title = S(
+                        "Interact"
+                    ),
+                },
+                {
+                    check = privilege_check(
+                        "fly"
+                    ),
+                    title = S(
+                        "Fly"
+                    ),
+                }
             ),
-            subject
+            subject,
+            function(
+                player,
+                formname,
+                fields
+            )
+                local name = player:get_player_name(
+                )
+                if false == check_field(
+                    name,
+                    formname,
+                    fields,
+                    subject
+                ) then
+                    return false
+                end
+                local exploded = minetest.explode_table_event(
+                    fields[
+                        subject
+                    ]
+                )
+                for k,v in pairs(
+                    exploded
+                ) do
+                    print(
+                        "EDUtest table event field b: " .. k .. " | " .. v
+                    )
+                end
+                return true
+            end
         )
         return {
             form = form
@@ -3043,6 +3119,14 @@ local on_player_receive_fields = function(
     fields
 )
     local name = player:get_player_name(
+    )
+    print(
+        "DEBUG:"
+    )
+    field_debug_dump(
+        name,
+        formname,
+        fields
     )
     local contexts = player_context_form[
         name
