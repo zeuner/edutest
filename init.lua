@@ -204,6 +204,23 @@ local new_form = function(
             for index, element in ipairs(
                 self.formspec_elements
             ) do
+                if self.remembered_fields[
+                    name
+                ] then
+                    for k, v in pairs(
+                        self.remembered_fields[
+                            name
+                        ]
+                    ) do
+                        print(
+                            "EDUtest remembered: " .. k
+                        )
+                    end
+                else
+                    print(
+                        "EDUtest nothing remembered"
+                    )
+                end
                 formspec = formspec .. element(
                     self.remembered_fields[
                         name
@@ -664,10 +681,53 @@ local boolean_column_width = function(
     return max_width
 end
 
+local student_column_mapping = function(
+    columns
+)
+    local mapping = {
+        names = {
+        },
+        columns = {
+        },
+    }
+    local row = 1
+    edutest.for_all_students(
+        function(
+            player,
+            name
+        )
+            row = row + 1
+            mapping.names[
+                row
+            ] = name
+            print(
+                "EDUtest add mapping names " .. row .. " | " .. name
+            )
+        end
+    )
+    local column_index = 1
+    for k, column in pairs(
+        columns
+    ) do
+        column_index = column_index + 2
+        mapping.columns[
+            column_index
+        ] = {
+            title = column.title,
+            check = column.check,
+            enabling = column.enabling,
+            disabling = column.disabling,
+        }
+        print(
+            "EDUtest add mapping titles " .. column_index .. " | " .. column.title
+        )
+    end
+    return mapping
+end
+
 local student_table = function(
     field,
-    column1,
-    column2
+    columns
 )
     return function(
         layout,
@@ -683,12 +743,15 @@ local student_table = function(
                         field
                     ]
                 )
-                for k,v in pairs(
+                for k, v in pairs(
                     exploded
                 ) do
                     print(
                         "EDUtest table event field a: " .. k .. " | " .. v
                     )
+                end
+                if "CHG" == exploded.type then
+                    selected_index = exploded.row
                 end
             end
         end
@@ -706,27 +769,20 @@ local student_table = function(
                     name
                 )
                 local entry = name
-                if column1.check(
-                    name
-                ) then
-                    entry = entry .. ",#00FF00," .. S(
-                        "yes"
-                    )
-                else
-                    entry = entry .. ",#FF0000," .. S(
-                        "no"
-                    )
-                end
-                if column2.check(
-                    name
-                ) then
-                    entry = entry .. ",#00FF00," .. S(
-                        "yes"
-                    )
-                else
-                    entry = entry .. ",#FF0000," .. S(
-                        "no"
-                    )
+                for k, column in pairs(
+                    columns
+                ) do
+                    if column.check(
+                        name
+                    ) then
+                        entry = entry .. ",#00FF00," .. S(
+                            "yes"
+                        )
+                    else
+                        entry = entry .. ",#FF0000," .. S(
+                            "no"
+                        )
+                    end
                 end
                 if max_width < width then
                     max_width = width
@@ -736,18 +792,37 @@ local student_table = function(
             end
         )
         local height = 1.5
-        local full_width = max_width + boolean_column_width(
-            column1.title
-        ) + boolean_column_width(
-            column2.title
-        )
+        local full_width = max_width
+        for k, column in pairs(
+            columns
+        ) do
+            full_width = full_width + boolean_column_width(
+                column.title
+            )
+        end
         local position = layout:region_position(
             full_width,
             height
         )
-        return "tablecolumns[text;color;text;color;text]table[" .. position .. ";" .. full_width .. ",5;" .. field .. ";" .. S(
+        local formspec = "tablecolumns[text"
+        for k, column in pairs(
+            columns
+        ) do
+            formspec = formspec .. ";color;text"
+        end
+        formspec = formspec .. "]table[" .. position .. ";" .. full_width .. ",5;" .. field .. ";" .. S(
             "Name"
-        ) .. ",#FFFFFF," .. column1.title .. ",#FFFFFF," .. column2.title .. "," .. entries .. ";" .. selected_index .. "]"
+        )
+        for k, column in pairs(
+            columns
+        ) do
+            formspec = formspec .. ",#FFFFFF," .. column.title
+        end
+        formspec = formspec .. "," .. entries .. ";" .. selected_index .. "]"
+        print(
+            "EDUtest formspec " .. formspec
+        )
+        return formspec
     end
 end
 
@@ -1716,6 +1791,9 @@ local apply_operation = function(
     )
 end
 
+local tabular_interface_columns = {
+}
+
 local add_enabling_button = function(
     label,
     enable_label,
@@ -1724,6 +1802,15 @@ local add_enabling_button = function(
     disabling,
     enabled_check
 )
+    local new_column = {
+        title = label,
+        check = enabled_check,
+        enabling = enabling,
+        disabling = disabling,
+    }
+    tabular_interface_columns[
+        #tabular_interface_columns + 1
+    ] = new_column
     main_menu_form:add_button(
         main_layout,
         main_menu_form:new_field(
@@ -1998,22 +2085,7 @@ main_menu_form:add_button(
             ),
             student_table(
                 subject,
-                {
-                    check = privilege_check(
-                        "interact"
-                    ),
-                    title = S(
-                        "Interact"
-                    ),
-                },
-                {
-                    check = privilege_check(
-                        "fly"
-                    ),
-                    title = S(
-                        "Fly"
-                    ),
-                }
+                tabular_interface_columns
             ),
             subject,
             function(
@@ -2036,12 +2108,58 @@ main_menu_form:add_button(
                         subject
                     ]
                 )
-                for k,v in pairs(
-                    exploded
-                ) do
+                local column_mapping = student_column_mapping(
+                    tabular_interface_columns
+                )
+                if "CHG" == exploded.type
+                and column_mapping.names[
+                    exploded.row
+                ]
+                and column_mapping.columns[
+                    exploded.column
+                ] then
+                    local player_name = column_mapping.names[
+                        exploded.row
+                    ]
+                    local status
+                    if column_mapping.columns[
+                        exploded.column
+                    ].check(
+                        player_name
+                    ) then
+                        status = "on"
+                        column_mapping.columns[
+                            exploded.column
+                        ].disabling:to_individual(
+                            name,
+                            player_name
+                        )
+                    else
+                        status = "off"
+                        column_mapping.columns[
+                            exploded.column
+                        ].enabling:to_individual(
+                            name,
+                            player_name
+                        )
+                    end
                     print(
-                        "EDUtest table event field b: " .. k .. " | " .. v
+                        "EDUtest table event field c: " .. player_name .. " | " .. column_mapping.columns[
+                            exploded.column
+                        ].title .. " | " .. status
                     )
+                    set_current_inventory_form(
+                        player,
+                        form
+                    )
+                else
+                    for k, v in pairs(
+                        exploded
+                    ) do
+                        print(
+                            "EDUtest table event field b: " .. k .. " | " .. v
+                        )
+                    end
                 end
                 return true
             end
@@ -3137,21 +3255,6 @@ local on_player_receive_fields = function(
     for context, form in pairs(
         contexts
     ) do
-        for field, action in pairs(
-            form.handlers
-        ) do
-            if nil ~= fields[
-                field
-            ] then
-                return action(
-                    player,
-                    formname,
-                    fields,
-                    form,
-                    field
-                )
-            end
-        end
         if fields.quit then
             set_current_inventory_form(
                 player,
@@ -3170,11 +3273,29 @@ local on_player_receive_fields = function(
             for field_name, field_value in pairs(
                 fields
             ) do
+                print(
+                    "EDUtest remember " .. name .. " | " .. field_name .. " | " .. field_value
+                )
                 form.remembered_fields[
                     name
                 ][
                     field_name
                 ] = field_value
+            end
+        end
+        for field, action in pairs(
+            form.handlers
+        ) do
+            if nil ~= fields[
+                field
+            ] then
+                return action(
+                    player,
+                    formname,
+                    fields,
+                    form,
+                    field
+                )
             end
         end
     end
