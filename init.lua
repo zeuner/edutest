@@ -681,25 +681,47 @@ local boolean_column_width = function(
     return max_width
 end
 
-local student_column_mapping = function(
+local student_group_axis_mapping = function(
     columns
 )
     local mapping = {
-        names = {
+        rows = {
         },
         columns = {
         },
     }
     local row = 1
+    if edutest.for_all_groups then
+        edutest.for_all_groups(
+            function(
+                name,
+                members
+            )
+                row = row + 1
+                mapping.rows[
+                    row
+                ] = {
+                    type = "group",
+                    name = name,
+                }
+                print(
+                    "EDUtest add group mapping names " .. row .. " | " .. name
+                )
+            end
+        )
+    end
     edutest.for_all_students(
         function(
             player,
             name
         )
             row = row + 1
-            mapping.names[
+            mapping.rows[
                 row
-            ] = name
+            ] = {
+                type = "individual",
+                name = name,
+            }
             print(
                 "EDUtest add mapping names " .. row .. " | " .. name
             )
@@ -725,14 +747,85 @@ local student_column_mapping = function(
     return mapping
 end
 
-local student_table = function(
-    field,
+local student_group_axis_mapping_lazy = function(
     columns
+)
+    return function(
+    )
+        return student_group_axis_mapping(
+            columns
+        )
+    end
+end
+
+local student_axis_mapping = function(
+    columns
+)
+    local mapping = {
+        rows = {
+        },
+        columns = {
+        },
+    }
+    local row = 1
+    edutest.for_all_students(
+        function(
+            player,
+            name
+        )
+            row = row + 1
+            mapping.rows[
+                row
+            ] = {
+                type = "individual",
+                name = name,
+            }
+            print(
+                "EDUtest add mapping names " .. row .. " | " .. name
+            )
+        end
+    )
+    local column_index = 1
+    for k, column in pairs(
+        columns
+    ) do
+        column_index = column_index + 2
+        mapping.columns[
+            column_index
+        ] = {
+            title = column.title,
+            check = column.check,
+            enabling = column.enabling,
+            disabling = column.disabling,
+        }
+        print(
+            "EDUtest add mapping titles " .. column_index .. " | " .. column.title
+        )
+    end
+    return mapping
+end
+
+local student_axis_mapping_lazy = function(
+    columns
+)
+    return function(
+    )
+        return student_axis_mapping(
+            columns
+        )
+    end
+end
+
+local mapping_table = function(
+    field,
+    lazy_mapping
 )
     return function(
         layout,
         data
     )
+        local mapping = lazy_mapping(
+        )
         local selected_index = 1
         if data then
             if data[
@@ -760,18 +853,34 @@ local student_table = function(
         local max_width = string_width(
             entries
         )
-        edutest.for_all_students(
-            function(
-                player,
-                name
+        local row_index = 2
+        while mapping.rows[
+            row_index
+        ] do
+            local row = mapping.rows[
+                row_index
+            ]
+            row_index = row_index + 1
+            local name = row.name
+            local type = row.type
+            local entry
+            if "individual" == type then
+                entry = name
+            else
+                entry = group_prefix .. name
+            end
+            local width = string_width(
+                entry
             )
-                local width = string_width(
-                    name
-                )
-                local entry = name
-                for k, column in pairs(
-                    columns
-                ) do
+            local column_index = 3
+            while mapping.columns[
+                column_index
+            ] do
+                local column = mapping.columns[
+                    column_index
+                ]
+                column_index = column_index + 2
+                if "individual" == type then
                     if column.check(
                         name
                     ) then
@@ -783,19 +892,61 @@ local student_table = function(
                             "no"
                         )
                     end
+                else
+                    local enabled_count = 0
+                    local disabled_count = 0
+                    edutest.for_all_members(
+                        name,
+                        function(
+                            player,
+                            name
+                        )
+                            if column.check(
+                                name
+                            ) then
+                                enabled_count = enabled_count + 1
+                                print(
+                                    "EDUtest enabled count " .. name .. " " .. enabled_count
+                                )
+                            else
+                                disabled_count = disabled_count + 1
+                                print(
+                                    "EDUtest disabled count " .. name .. " " .. disabled_count
+                                )
+                            end
+                        end
+                    )
+                    if 0 == disabled_count then
+                        entry = entry .. ",#00FF00," .. S(
+                            "all"
+                        )
+                    elseif 0 == disabled_count then
+                        entry = entry .. ",#FF0000," .. S(
+                            "none"
+                        )
+                    else
+                        entry = entry .. ",#FFFF00," .. S(
+                            "some"
+                        )
+                    end
                 end
-                if max_width < width then
-                    max_width = width
-                end
-                entries = entries .. delimiter .. entry
-                delimiter = ","
             end
-        )
+            if max_width < width then
+                max_width = width
+            end
+            entries = entries .. delimiter .. entry
+            delimiter = ","
+        end
         local height = 1.5
         local full_width = max_width
-        for k, column in pairs(
-            columns
-        ) do
+        local column_index = 3
+        while mapping.columns[
+            column_index
+        ] do
+            local column = mapping.columns[
+                column_index
+            ]
+            column_index = column_index + 2
             full_width = full_width + boolean_column_width(
                 column.title
             )
@@ -805,17 +956,24 @@ local student_table = function(
             height
         )
         local formspec = "tablecolumns[text"
-        for k, column in pairs(
-            columns
-        ) do
+        column_index = 3
+        while mapping.columns[
+            column_index
+        ] do
+            column_index = column_index + 2
             formspec = formspec .. ";color;text"
         end
         formspec = formspec .. "]table[" .. position .. ";" .. full_width .. ",5;" .. field .. ";" .. S(
             "Name"
         )
-        for k, column in pairs(
-            columns
-        ) do
+        column_index = 3
+        while mapping.columns[
+            column_index
+        ] do
+            local column = mapping.columns[
+                column_index
+            ]
+            column_index = column_index + 2
             formspec = formspec .. ",#FFFFFF," .. column.title
         end
         formspec = formspec .. "," .. entries .. ";" .. selected_index .. "]"
@@ -2075,17 +2233,22 @@ main_menu_form:add_button(
         local form = new_sub_form(
             "EDUtest > " .. S(
                 "Table test"
-            )
+            ),
+            11,
+            9
         )
         local subject = form:new_field(
+        )
+        local mapping = student_group_axis_mapping_lazy(
+            tabular_interface_columns
         )
         form:add_input(
             static_layout(
                 "0,2"
             ),
-            student_table(
+            mapping_table(
                 subject,
-                tabular_interface_columns
+                mapping
             ),
             subject,
             function(
@@ -2108,43 +2271,89 @@ main_menu_form:add_button(
                         subject
                     ]
                 )
-                local column_mapping = student_column_mapping(
-                    tabular_interface_columns
+                local column_mapping = mapping(
                 )
                 if "CHG" == exploded.type
-                and column_mapping.names[
+                and column_mapping.rows[
                     exploded.row
                 ]
                 and column_mapping.columns[
                     exploded.column
                 ] then
-                    local player_name = column_mapping.names[
+                    local subject_name = column_mapping.rows[
                         exploded.row
-                    ]
+                    ].name
                     local status
-                    if column_mapping.columns[
-                        exploded.column
-                    ].check(
-                        player_name
-                    ) then
-                        status = "on"
-                        column_mapping.columns[
+                    if "individual" == column_mapping.rows[
+                        exploded.row
+                    ].type then
+                        if column_mapping.columns[
                             exploded.column
-                        ].disabling:to_individual(
-                            name,
-                            player_name
-                        )
+                        ].check(
+                            subject_name
+                        ) then
+                            status = "on"
+                            column_mapping.columns[
+                                exploded.column
+                            ].disabling:to_individual(
+                                name,
+                                subject_name
+                            )
+                        else
+                            status = "off"
+                            column_mapping.columns[
+                                exploded.column
+                            ].enabling:to_individual(
+                                name,
+                                subject_name
+                            )
+                        end
                     else
-                        status = "off"
-                        column_mapping.columns[
-                            exploded.column
-                        ].enabling:to_individual(
-                            name,
-                            player_name
+                        local enabled_count = 0
+                        local disabled_count = 0
+                        edutest.for_all_members(
+                            subject_name,
+                            function(
+                                player,
+                                name
+                            )
+                                if column_mapping.columns[
+                                    exploded.column
+                                ].check(
+                                    name
+                                ) then
+                                    enabled_count = enabled_count + 1
+                                    print(
+                                        "EDUtest enabled count " .. name .. " " .. enabled_count
+                                    )
+                                else
+                                    disabled_count = disabled_count + 1
+                                    print(
+                                        "EDUtest disabled count " .. name .. " " .. disabled_count
+                                    )
+                                end
+                            end
                         )
+                        if 0 == disabled_count then
+                            status = "on"
+                            column_mapping.columns[
+                                exploded.column
+                            ].disabling:to_group(
+                                name,
+                                subject_name
+                            )
+                        else
+                            status = "off"
+                            column_mapping.columns[
+                                exploded.column
+                            ].enabling:to_group(
+                                name,
+                                subject_name
+                            )
+                        end
                     end
                     print(
-                        "EDUtest table event field c: " .. player_name .. " | " .. column_mapping.columns[
+                        "EDUtest table event field c: " .. subject_name .. " | " .. column_mapping.columns[
                             exploded.column
                         ].title .. " | " .. status
                     )
