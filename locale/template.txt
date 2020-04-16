@@ -41,3 +41,4 @@ Toggle sun movement =
 missing privilege: %s =
 sun movement enabled =
 sun movement disabled =
+Manage players =

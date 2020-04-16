@@ -204,23 +204,6 @@ local new_form = function(
             for index, element in ipairs(
                 self.formspec_elements
             ) do
-                if self.remembered_fields[
-                    name
-                ] then
-                    for k, v in pairs(
-                        self.remembered_fields[
-                            name
-                        ]
-                    ) do
-                        print(
-                            "EDUtest remembered: " .. k
-                        )
-                    end
-                else
-                    print(
-                        "EDUtest nothing remembered"
-                    )
-                end
                 formspec = formspec .. element(
                     self.remembered_fields[
                         name
@@ -681,6 +664,81 @@ local boolean_column_width = function(
     return max_width
 end
 
+local student_all_group_axis_mapping = function(
+    columns
+)
+    local mapping = {
+        rows = {
+        },
+        columns = {
+        },
+    }
+    local row = 1
+    row = row + 1
+    mapping.rows[
+        row
+    ] = {
+        name = "students",
+        type = "all",
+    }
+    if edutest.for_all_groups then
+        edutest.for_all_groups(
+            function(
+                name,
+                members
+            )
+                row = row + 1
+                mapping.rows[
+                    row
+                ] = {
+                    type = "group",
+                    name = name,
+                }
+            end
+        )
+    end
+    edutest.for_all_students(
+        function(
+            player,
+            name
+        )
+            row = row + 1
+            mapping.rows[
+                row
+            ] = {
+                type = "individual",
+                name = name,
+            }
+        end
+    )
+    local column_index = 1
+    for k, column in pairs(
+        columns
+    ) do
+        column_index = column_index + 2
+        mapping.columns[
+            column_index
+        ] = {
+            title = column.title,
+            check = column.check,
+            enabling = column.enabling,
+            disabling = column.disabling,
+        }
+    end
+    return mapping
+end
+
+local student_all_group_axis_mapping_lazy = function(
+    columns
+)
+    return function(
+    )
+        return student_all_group_axis_mapping(
+            columns
+        )
+    end
+end
+
 local student_group_axis_mapping = function(
     columns
 )
@@ -704,9 +762,6 @@ local student_group_axis_mapping = function(
                     type = "group",
                     name = name,
                 }
-                print(
-                    "EDUtest add group mapping names " .. row .. " | " .. name
-                )
             end
         )
     end
@@ -722,9 +777,6 @@ local student_group_axis_mapping = function(
                 type = "individual",
                 name = name,
             }
-            print(
-                "EDUtest add mapping names " .. row .. " | " .. name
-            )
         end
     )
     local column_index = 1
@@ -740,9 +792,6 @@ local student_group_axis_mapping = function(
             enabling = column.enabling,
             disabling = column.disabling,
         }
-        print(
-            "EDUtest add mapping titles " .. column_index .. " | " .. column.title
-        )
     end
     return mapping
 end
@@ -780,9 +829,6 @@ local student_axis_mapping = function(
                 type = "individual",
                 name = name,
             }
-            print(
-                "EDUtest add mapping names " .. row .. " | " .. name
-            )
         end
     )
     local column_index = 1
@@ -798,9 +844,6 @@ local student_axis_mapping = function(
             enabling = column.enabling,
             disabling = column.disabling,
         }
-        print(
-            "EDUtest add mapping titles " .. column_index .. " | " .. column.title
-        )
     end
     return mapping
 end
@@ -836,13 +879,6 @@ local mapping_table = function(
                         field
                     ]
                 )
-                for k, v in pairs(
-                    exploded
-                ) do
-                    print(
-                        "EDUtest table event field a: " .. k .. " | " .. v
-                    )
-                end
                 if "CHG" == exploded.type then
                     selected_index = exploded.row
                 end
@@ -866,8 +902,10 @@ local mapping_table = function(
             local entry
             if "individual" == type then
                 entry = name
-            else
+            elseif 'group' == type then
                 entry = group_prefix .. name
+            else
+                entry = all_students_entry
             end
             local width = string_width(
                 entry
@@ -892,7 +930,7 @@ local mapping_table = function(
                             "no"
                         )
                     end
-                else
+                elseif 'group' == type then
                     local enabled_count = 0
                     local disabled_count = 0
                     edutest.for_all_members(
@@ -905,14 +943,38 @@ local mapping_table = function(
                                 name
                             ) then
                                 enabled_count = enabled_count + 1
-                                print(
-                                    "EDUtest enabled count " .. name .. " " .. enabled_count
-                                )
                             else
                                 disabled_count = disabled_count + 1
-                                print(
-                                    "EDUtest disabled count " .. name .. " " .. disabled_count
-                                )
+                            end
+                        end
+                    )
+                    if 0 == disabled_count then
+                        entry = entry .. ",#00FF00," .. S(
+                            "all"
+                        )
+                    elseif 0 == disabled_count then
+                        entry = entry .. ",#FF0000," .. S(
+                            "none"
+                        )
+                    else
+                        entry = entry .. ",#FFFF00," .. S(
+                            "some"
+                        )
+                    end
+                else
+                    local enabled_count = 0
+                    local disabled_count = 0
+                    edutest.for_all_students(
+                        function(
+                            player,
+                            name
+                        )
+                            if column.check(
+                                name
+                            ) then
+                                enabled_count = enabled_count + 1
+                            else
+                                disabled_count = disabled_count + 1
                             end
                         end
                     )
@@ -951,8 +1013,9 @@ local mapping_table = function(
                 column.title
             )
         end
+        local adjusted_width = full_width * 2 / 3
         local position = layout:region_position(
-            full_width,
+            adjusted_width,
             height
         )
         local formspec = "tablecolumns[text"
@@ -963,7 +1026,7 @@ local mapping_table = function(
             column_index = column_index + 2
             formspec = formspec .. ";color;text"
         end
-        formspec = formspec .. "]table[" .. position .. ";" .. full_width .. ",5;" .. field .. ";" .. S(
+        formspec = formspec .. "]table[" .. position .. ";" .. adjusted_width .. ",5;" .. field .. ";" .. S(
             "Name"
         )
         column_index = 3
@@ -977,9 +1040,6 @@ local mapping_table = function(
             formspec = formspec .. ",#FFFFFF," .. column.title
         end
         formspec = formspec .. "," .. entries .. ";" .. selected_index .. "]"
-        print(
-            "EDUtest formspec " .. formspec
-        )
         return formspec
     end
 end
@@ -2210,7 +2270,7 @@ main_menu_form:add_button(
     main_menu_form:new_field(
     ),
     S(
-        "Table test"
+        "Manage players"
     ),
     function(
         player,
@@ -2232,14 +2292,14 @@ main_menu_form:add_button(
     )
         local form = new_sub_form(
             "EDUtest > " .. S(
-                "Table test"
+                "Manage players"
             ),
-            11,
+            15,
             9
         )
         local subject = form:new_field(
         )
-        local mapping = student_group_axis_mapping_lazy(
+        local mapping = student_all_group_axis_mapping_lazy(
             tabular_interface_columns
         )
         form:add_input(
@@ -2308,7 +2368,9 @@ main_menu_form:add_button(
                                 subject_name
                             )
                         end
-                    else
+                    elseif "group" == column_mapping.rows[
+                        exploded.row
+                    ].type then
                         local enabled_count = 0
                         local disabled_count = 0
                         edutest.for_all_members(
@@ -2323,14 +2385,8 @@ main_menu_form:add_button(
                                     name
                                 ) then
                                     enabled_count = enabled_count + 1
-                                    print(
-                                        "EDUtest enabled count " .. name .. " " .. enabled_count
-                                    )
                                 else
                                     disabled_count = disabled_count + 1
-                                    print(
-                                        "EDUtest disabled count " .. name .. " " .. disabled_count
-                                    )
                                 end
                             end
                         )
@@ -2351,24 +2407,45 @@ main_menu_form:add_button(
                                 subject_name
                             )
                         end
+                    else
+                        local enabled_count = 0
+                        local disabled_count = 0
+                        edutest.for_all_students(
+                            function(
+                                player,
+                                name
+                            )
+                                if column_mapping.columns[
+                                    exploded.column
+                                ].check(
+                                    name
+                                ) then
+                                    enabled_count = enabled_count + 1
+                                else
+                                    disabled_count = disabled_count + 1
+                                end
+                            end
+                        )
+                        if 0 == disabled_count then
+                            status = "on"
+                            column_mapping.columns[
+                                exploded.column
+                            ].disabling:to_students(
+                                name
+                            )
+                        else
+                            status = "off"
+                            column_mapping.columns[
+                                exploded.column
+                            ].enabling:to_students(
+                                name
+                            )
+                        end
                     end
-                    print(
-                        "EDUtest table event field c: " .. subject_name .. " | " .. column_mapping.columns[
-                            exploded.column
-                        ].title .. " | " .. status
-                    )
                     set_current_inventory_form(
                         player,
                         form
                     )
-                else
-                    for k, v in pairs(
-                        exploded
-                    ) do
-                        print(
-                            "EDUtest table event field b: " .. k .. " | " .. v
-                        )
-                    end
                 end
                 return true
             end
@@ -3482,9 +3559,6 @@ local on_player_receive_fields = function(
             for field_name, field_value in pairs(
                 fields
             ) do
-                print(
-                    "EDUtest remember " .. name .. " | " .. field_name .. " | " .. field_value
-                )
                 form.remembered_fields[
                     name
                 ][
