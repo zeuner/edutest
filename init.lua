@@ -952,7 +952,7 @@ local mapping_table = function(
                         entry = entry .. ",#00FF00," .. S(
                             "all"
                         )
-                    elseif 0 == disabled_count then
+                    elseif 0 == enabled_count then
                         entry = entry .. ",#FF0000," .. S(
                             "none"
                         )
@@ -982,7 +982,7 @@ local mapping_table = function(
                         entry = entry .. ",#00FF00," .. S(
                             "all"
                         )
-                    elseif 0 == disabled_count then
+                    elseif 0 == enabled_count then
                         entry = entry .. ",#FF0000," .. S(
                             "none"
                         )
