@@ -506,7 +506,9 @@ local set_current_inventory_form = function(
     )
     set_frontend_form(
         player,
-        form.formspec
+        form:get_formspec(
+            player
+        )
     )
 end
 
@@ -1205,7 +1207,9 @@ if nil ~= edutest.set_highlight_marker_click_handler then
             minetest.show_formspec(
                 name,
                 "edutest:highlight",
-                highlight_form.formspec
+                highlight_form:get_formspec(
+                    name
+                )
             )
         end
     )
@@ -2958,11 +2962,14 @@ elseif minetest.registered_items[
                     player,
                     main_menu_form
                 )
+                local name = player:get_player_name(
+                )
                 minetest.show_formspec(
-                    player:get_player_name(
-                    ),
+                    name,
                     "edutest:main",
-                    main_menu_form.formspec
+                    main_menu_form:get_formspec(
+                        name
+                    )
                 )
             end,
         }
