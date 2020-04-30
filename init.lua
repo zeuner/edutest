@@ -394,9 +394,25 @@ elseif rawget(
         )
     end
 else
-    fatal(
+    print(
         "unsupported inventory implementation"
     )
+    set_frontend_form = function(
+        player,
+        formspec
+    )
+        print(
+            "unsupported inventory implementation"
+        )
+    end
+    set_inventory_page = function(
+        player,
+        ignored
+    )
+        print(
+            "unsupported inventory implementation"
+        )
+    end
 end
 
 local main_layout = horizontal_layout(
