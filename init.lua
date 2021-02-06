@@ -169,7 +169,13 @@ end
 local last_form_id = 0
 
 local new_form = function(
+    description
 )
+    if not description then
+        fatal(
+            "form description needed"
+        )
+    end
     last_form_id = last_form_id + 1
     local constructed = {
         add_button = add_button,
@@ -177,6 +183,7 @@ local new_form = function(
         form_id = last_form_id,
         last_field = 0,
         last_element = 0,
+        description = description,
         add_element = function(
             self,
             layout
@@ -366,6 +373,47 @@ else
     )
 end
 
+local reset_inventory_page = function(
+    player
+)
+    local name = player:get_player_name(
+    )
+    local previous = "undefined"
+    if player_context_form[
+        name
+    ][
+        "inventory"
+    ] then
+        previous = "[" .. player_context_form[
+            name
+        ][
+            "inventory"
+        ].description .. "]"
+    end
+    player_context_form[
+        name
+    ][
+        "inventory"
+    ] = nil
+    local old_page = player_previous_inventory_page[
+        name
+    ]
+    if not old_page then
+        old_page = default_inventory_page
+    end
+    local previous_spec = "(previous page " .. previous .. ")"
+    minetest.log(
+        "info",
+        "[EDUtest] resetting inventory page to " .. old_page .. " " .. previous_spec
+    )
+    set_inventory_page(
+        player,
+        old_page
+    )
+end
+
+edutest.reset_inventory_page = reset_inventory_page
+
 local main_layout = horizontal_layout(
     11
 )
@@ -374,6 +422,7 @@ local new_main_form = function(
     label
 )
     local constructed = new_form(
+        "EDUtest main"
     )
     constructed:add_element(
         function(
@@ -402,22 +451,8 @@ local new_main_form = function(
             fields,
             form
         )
-            local name = player:get_player_name(
-            )
-            player_context_form[
-                name
-            ][
-                "inventory"
-            ] = nil
-            local old_page = player_previous_inventory_page[
-                name
-            ]
-            if not old_page then
-                old_page = default_inventory_page
-            end
-            set_inventory_page(
-                player,
-                old_page
+            reset_inventory_page(
+                player
             )
             return true
         end
@@ -457,6 +492,10 @@ local set_current_inventory_form = function(
     player,
     form
 )
+    minetest.log(
+        "info",
+        "[EDUtest] setting inventory page to " .. form.description
+    )
     set_current_form_handlers(
         player,
         form
@@ -909,6 +948,7 @@ local new_sub_form = function(
         size = width .. "," .. height
     end
     local constructed = new_form(
+        label
     )
     constructed:add_element(
         function(
@@ -950,6 +990,7 @@ local new_sub_form = function(
 end
 
 local highlight_form = new_form(
+    "EDUtest area highlighting"
 )
 
 if nil ~= edutest.set_highlight_marker_click_handler then
@@ -1372,10 +1413,9 @@ local unary_command_application = function(
             player_name,
             group_name
         )
-            minetest.chatcommands[
-                "every_member"
-            ].func(
+            edutest.run_chatcommand(
                 player_name,
+                "every_member",
                 group_name .. " " .. self.command .. " subject"
             )
             return true
@@ -1384,10 +1424,9 @@ local unary_command_application = function(
             self,
             player_name
         )
-            minetest.chatcommands[
-                "every_student"
-            ].func(
+            edutest.run_chatcommand(
                 player_name,
+                "every_student",
                 self.command .. " subject"
             )
             return true
@@ -1397,10 +1436,9 @@ local unary_command_application = function(
             player_name,
             individual_name
         )
-            minetest.chatcommands[
-                self.command
-            ].func(
+            edutest.run_chatcommand(
                 player_name,
+                self.command,
                 individual_name
             )
             return true
@@ -1418,10 +1456,9 @@ local privilege_grant = function(
             player_name,
             group_name
         )
-            minetest.chatcommands[
-                "every_member"
-            ].func(
+            edutest.run_chatcommand(
                 player_name,
+                "every_member",
                 group_name .. " grant subject " .. self.privilege
             )
             return true
@@ -1430,10 +1467,9 @@ local privilege_grant = function(
             self,
             player_name
         )
-            minetest.chatcommands[
-                "every_student"
-            ].func(
+            edutest.run_chatcommand(
                 player_name,
+                "every_student",
                 "grant subject " .. self.privilege
             )
             return true
@@ -1443,10 +1479,9 @@ local privilege_grant = function(
             player_name,
             individual_name
         )
-            minetest.chatcommands[
-                "grant"
-            ].func(
+            edutest.run_chatcommand(
                 player_name,
+                "grant",
                 individual_name .. " " .. self.privilege
             )
             return true
@@ -1464,10 +1499,9 @@ local privilege_revocation = function(
             player_name,
             group_name
         )
-            minetest.chatcommands[
-                "every_member"
-            ].func(
+            edutest.run_chatcommand(
                 player_name,
+                "every_member",
                 group_name .. " revoke subject " .. self.privilege
             )
             return true
@@ -1476,10 +1510,9 @@ local privilege_revocation = function(
             self,
             player_name
         )
-            minetest.chatcommands[
-                "every_student"
-            ].func(
+            edutest.run_chatcommand(
                 player_name,
+                "every_student",
                 "revoke subject " .. self.privilege
             )
             return true
@@ -1489,10 +1522,9 @@ local privilege_revocation = function(
             player_name,
             individual_name
         )
-            minetest.chatcommands[
-                "revoke"
-            ].func(
+            edutest.run_chatcommand(
                 player_name,
+                "revoke",
                 individual_name .. " " .. self.privilege
             )
             return true
@@ -1914,10 +1946,9 @@ main_menu_form:add_button(
                 ] then
                     return false
                 end
-                minetest.chatcommands[
-                    teleport_command
-                ].func(
+                edutest.run_chatcommand(
                     name,
+                    teleport_command,
                     name .. " " .. fields[
                         subject
                     ]
@@ -1944,10 +1975,9 @@ main_menu_form:add_button(
                 )
                     local name = player:get_player_name(
                     )
-                    minetest.chatcommands[
-                        "return"
-                    ].func(
+                    edutest.run_chatcommand(
                         name,
+                        "return",
                         ""
                     )
                     return true
@@ -2043,10 +2073,9 @@ main_menu_form:add_button(
                             group_prefix
                         ) + 1
                     )
-                    minetest.chatcommands[
-                        "every_member"
-                    ].func(
+                    edutest.run_chatcommand(
                         name,
+                        "every_member",
                         group_name .. " " .. teleport_command .. " subject " .. name
                     )
                     return true
@@ -2054,18 +2083,16 @@ main_menu_form:add_button(
                 if all_students_entry == fields[
                     subject
                 ] then
-                    minetest.chatcommands[
-                        "every_student"
-                    ].func(
+                    edutest.run_chatcommand(
                         name,
+                        "every_student",
                         teleport_command .. " subject " .. name
                     )
                     return true
                 end
-                minetest.chatcommands[
-                    teleport_command
-                ].func(
+                edutest.run_chatcommand(
                     name,
+                    teleport_command,
                     fields[
                         subject
                     ] .. " " .. name
@@ -2254,10 +2281,9 @@ if nil ~= minetest.chatcommands[
                                 group_prefix
                             ) + 1
                         )
-                        minetest.chatcommands[
-                            "every_member"
-                        ].func(
+                        edutest.run_chatcommand(
                             name,
+                            "every_member",
                             group_name .. " notify subject " .. fields[
                                 notification
                             ]
@@ -2267,20 +2293,18 @@ if nil ~= minetest.chatcommands[
                     if all_students_entry == fields[
                         subject
                     ] then
-                        minetest.chatcommands[
-                            "every_student"
-                        ].func(
+                        edutest.run_chatcommand(
                             name,
+                            "every_student",
                             "notify subject " .. fields[
                                 notification
                             ]
                         )
                         return true
                     end
-                    minetest.chatcommands[
-                        "notify"
-                    ].func(
+                    edutest.run_chatcommand(
                         name,
+                        "notify",
                         fields[
                             subject
                         ] .. " " .. fields[
@@ -2422,10 +2446,9 @@ if edutest.for_all_groups then
                             " ",
                             "_"
                         )
-                        minetest.chatcommands[
-                            "create_group"
-                        ].func(
+                        edutest.run_chatcommand(
                             name,
+                            "create_group",
                             group_name
                         )
                     else
@@ -2433,10 +2456,9 @@ if edutest.for_all_groups then
                             group
                         ]
                     end
-                    minetest.chatcommands[
-                        "enter_group"
-                    ].func(
+                    edutest.run_chatcommand(
                         name,
+                        "enter_group",
                         group_name .. " " .. fields[
                             subject
                         ]
@@ -2498,10 +2520,9 @@ if edutest.for_all_groups then
                             " ",
                             "_"
                         )
-                        minetest.chatcommands[
-                            "create_group"
-                        ].func(
+                        edutest.run_chatcommand(
                             name,
+                            "create_group",
                             group_name
                         )
                     else
@@ -2509,10 +2530,9 @@ if edutest.for_all_groups then
                             group
                         ]
                     end
-                    minetest.chatcommands[
-                        "leave_group"
-                    ].func(
+                    edutest.run_chatcommand(
                         name,
+                        "leave_group",
                         group_name .. " " .. fields[
                             subject
                         ]
@@ -2595,17 +2615,15 @@ if nil ~= minetest.chatcommands[
                     if nil ~= minetest.chatcommands[
                         "highlight_pos1"
                     ] then
-                        minetest.chatcommands[
-                            "highlight_pos1"
-                        ].func(
+                        edutest.run_chatcommand(
                             name,
+                            "highlight_pos1",
                             ""
                         )
                     else
-                        minetest.chatcommands[
-                            "area_pos"
-                        ].func(
+                        edutest.run_chatcommand(
                             name,
+                            "area_pos",
                             "set1"
                         )
                         minetest.chat_send_player(
@@ -2637,17 +2655,15 @@ if nil ~= minetest.chatcommands[
                     if nil ~= minetest.chatcommands[
                         "highlight_pos2"
                     ] then
-                        minetest.chatcommands[
-                            "highlight_pos2"
-                        ].func(
+                        edutest.run_chatcommand(
                             name,
+                            "highlight_pos2",
                             ""
                         )
                     else
-                        minetest.chatcommands[
-                            "area_pos"
-                        ].func(
+                        edutest.run_chatcommand(
                             name,
+                            "area_pos",
                             "set2"
                         )
                         minetest.chat_send_player(
@@ -2744,20 +2760,18 @@ if nil ~= minetest.chatcommands[
                                 group_prefix
                             ) + 1
                         )
-                        minetest.chatcommands[
-                            "highlight_set_owner_group"
-                        ].func(
+                        edutest.run_chatcommand(
                             name,
+                            "highlight_set_owner_group",
                             group_name .. " " .. fields[
                                 area_name
                             ]
                         )
                         return true
                     end
-                    minetest.chatcommands[
-                        "highlight_areas"
-                    ].func(
+                    edutest.run_chatcommand(
                         name,
+                        "highlight_areas",
                         "set_owner " .. fields[
                             owner
                         ] .. " " .. fields[
@@ -2797,17 +2811,15 @@ if nil ~= minetest.registered_privileges[
                     invincible = true
                 }
             ) then
-                minetest.chatcommands[
-                    "revoke"
-                ].func(
+                edutest.run_chatcommand(
                     name,
+                    "revoke",
                     name .. " invincible"
                 )
             else
-                minetest.chatcommands[
-                    "grant"
-                ].func(
+                edutest.run_chatcommand(
                     name,
+                    "grant",
                     name .. " invincible"
                 )
             end
@@ -2833,10 +2845,9 @@ if nil ~= minetest.chatcommands[
         )
             local name = player:get_player_name(
             )
-            minetest.chatcommands[
-                "vanish"
-            ].func(
+            edutest.run_chatcommand(
                 name,
+                "vanish",
                 ""
             )
             return true
@@ -2927,6 +2938,11 @@ local on_player_receive_fields = function(
             if nil ~= fields[
                 field
             ] then
+                local action_spec = "[" .. context .. "] [" .. form.description .. "] [" .. field .. "]"
+                minetest.log(
+                    "info",
+                    "[EDUtest] applying field action " .. action_spec
+                )
                 return action(
                     player,
                     formname,
@@ -2937,12 +2953,22 @@ local on_player_receive_fields = function(
             end
         end
         if fields.quit then
-            set_current_inventory_form(
-                player,
-                form
+            minetest.log(
+                "info",
+                "[EDUtest] quit action [" .. context .. "] [" .. form.description .. "]"
             )
+            if "inventory" == context then
+                set_current_inventory_form(
+                    player,
+                    form
+                )
+            end
             return true
         else
+            minetest.log(
+                "info",
+                "[EDUtest] unknown field action [" .. context .. "] [" .. form.description .. "]"
+            )
             if not form.remembered_fields[
                 name
             ] then
