@@ -12,7 +12,7 @@ https://forum.minetest.net/viewtopic.php?f=9&t=18988
 ## setup
 
 In order to be able to access the GUI actions, the player needs to be
-granted the "teacher" privilege.
+granted the "teacher" privilege. Actions have an effect to all players that have the "student" privilege.
 
 ## dependencies
 
@@ -27,3 +27,4 @@ granted the "teacher" privilege.
 * invis (https://github.com/octacian/minetest-mod-invis)
 * areas (https://github.com/ShadowNinja/areas)
 * invincibility (https://github.com/zeuner/invincibility)
+* hud_notify (https://github.com/ClobberXD/hud_notify)
