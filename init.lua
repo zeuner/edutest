@@ -374,6 +374,35 @@ local main_layout = horizontal_layout(
     11
 )
 
+local null_form = new_form(
+)
+
+local set_current_form_handlers = function(
+    player,
+    form,
+    context
+)
+    local installed_context = context
+    if not installed_context then
+        installed_context = "inventory"
+    end
+    local name = player:get_player_name(
+    )
+    if not player_context_form[
+        name
+    ] then
+        player_context_form[
+            name
+        ] = {
+        }
+    end
+    player_context_form[
+        name
+    ][
+        installed_context
+    ] = form
+end
+
 local new_main_form = function(
     label
 )
@@ -431,32 +460,6 @@ local new_main_form = function(
     return constructed
 end
 
-local set_current_form_handlers = function(
-    player,
-    form,
-    context
-)
-    local installed_context = context
-    if not installed_context then
-        installed_context = "inventory"
-    end
-    local name = player:get_player_name(
-    )
-    if not player_context_form[
-        name
-    ] then
-        player_context_form[
-            name
-        ] = {
-        }
-    end
-    player_context_form[
-        name
-    ][
-        installed_context
-    ] = form
-end
-
 local set_current_inventory_form = function(
     player,
     form
@@ -480,6 +483,10 @@ local all_students_entry = S(
 
 local choose_student_entry = S(
     "Choose student"
+)
+
+local choose_teacher_entry = S(
+    "Choose teacher"
 )
 
 local choose_group_entry = S(
@@ -1041,6 +1048,59 @@ local mapping_table = function(
         end
         formspec = formspec .. "," .. entries .. ";" .. selected_index .. "]"
         return formspec
+    end
+end
+
+local basic_teacher_dropdown = function(
+    field
+)
+    return function(
+        layout,
+        data
+    )
+        local selected_value = ""
+        local selected_index = 1
+        local current_index = 1
+        if data then
+            if data[
+                field
+            ] then
+                selected_value = data[
+                    field
+                ]
+            end
+        end
+        local entry = choose_teacher_entry
+        if selected_value == entry then
+            selected_index = current_index
+        end
+        local entries = entry
+        local max_width = string_width(
+            entries
+        )
+        edutest.for_all_teachers(
+            function(
+                player,
+                name
+            )
+                local width = string_width(
+                    name
+                )
+                if max_width < width then
+                    max_width = width
+                end
+                current_index = current_index + 1
+                if selected_value == name then
+                    selected_index = current_index
+                end
+                entries = entries .. "," .. name
+            end
+        )
+        local height = 1.5
+        return "dropdown[" .. layout:region_position(
+            max_width,
+            height
+        ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";" .. selected_index .. "]"
     end
 end
 
@@ -2447,6 +2507,200 @@ main_menu_form:add_button(
                         form
                     )
                 end
+                return true
+            end
+        )
+        return {
+            form = form
+        }
+    end
+)
+
+main_menu_form:add_button(
+    main_layout,
+    main_menu_form:new_field(
+    ),
+    S(
+        "Add teacher"
+    ),
+    function(
+        player,
+        formname,
+        fields,
+        form,
+        field
+    )
+        local subform = form.resources[
+            field
+        ].form
+        set_current_inventory_form(
+            player,
+            subform
+        )
+        return true
+    end,
+    function(
+    )
+        local form = new_sub_form(
+            "EDUtest > " .. S(
+                "Add teacher"
+            )
+        )
+        local subject = form:new_field(
+        )
+        form:add_input(
+            static_layout(
+                "0,2"
+            ),
+            basic_student_dropdown(
+                subject
+            ),
+            subject
+        )
+        form:add_button(
+            static_layout(
+                "0,3"
+            ),
+            form:new_field(
+            ),
+            S(
+                "Grant teacher privilege"
+            ),
+            function(
+                player,
+                formname,
+                fields
+            )
+                local name = player:get_player_name(
+                )
+                if false == check_field(
+                    name,
+                    formname,
+                    fields,
+                    subject
+                ) then
+                    return false
+                end
+                if choose_student_entry == fields[
+                    subject
+                ] then
+                    return false
+                end
+                local subject_player = minetest.get_player_by_name(
+                    fields[
+                        subject
+                    ]
+                )
+                if not subject_player then
+                    minetest.log(
+                        "action",
+                        "player " .. fields[
+                            subject
+                        ] .. " disappeared"
+                    )
+                    return false
+                end
+                edutest.student_to_teacher(
+                    player,
+                    subject_player
+                )
+                return true
+            end
+        )
+        return {
+            form = form
+        }
+    end
+)
+
+main_menu_form:add_button(
+    main_layout,
+    main_menu_form:new_field(
+    ),
+    S(
+        "Remove teacher"
+    ),
+    function(
+        player,
+        formname,
+        fields,
+        form,
+        field
+    )
+        local subform = form.resources[
+            field
+        ].form
+        set_current_inventory_form(
+            player,
+            subform
+        )
+        return true
+    end,
+    function(
+    )
+        local form = new_sub_form(
+            "EDUtest > " .. S(
+                "Remove teacher"
+            )
+        )
+        local subject = form:new_field(
+        )
+        form:add_input(
+            static_layout(
+                "0,2"
+            ),
+            basic_teacher_dropdown(
+                subject
+            ),
+            subject
+        )
+        form:add_button(
+            static_layout(
+                "0,3"
+            ),
+            form:new_field(
+            ),
+            S(
+                "Revoke teacher privilege"
+            ),
+            function(
+                player,
+                formname,
+                fields
+            )
+                local name = player:get_player_name(
+                )
+                if false == check_field(
+                    name,
+                    formname,
+                    fields,
+                    subject
+                ) then
+                    return false
+                end
+                if choose_teacher_entry == fields[
+                    subject
+                ] then
+                    return false
+                end
+                local subject_player = minetest.get_player_by_name(
+                    fields[
+                        subject
+                    ]
+                )
+                if not subject_player then
+                    minetest.log(
+                        "action",
+                        "player " .. fields[
+                            subject
+                        ] .. " disappeared"
+                    )
+                    return false
+                end
+                edutest.teacher_to_student(
+                    player,
+                    subject_player
+                )
                 return true
             end
         )
