@@ -2072,6 +2072,8 @@ end
 local tabular_interface_columns = {
 }
 
+local old_style_enabling_buttons
+
 local add_enabling_button = function(
     label,
     enable_label,
@@ -2089,7 +2091,10 @@ local add_enabling_button = function(
     tabular_interface_columns[
         #tabular_interface_columns + 1
     ] = new_column
-    main_menu_form:add_button(
+    if not old_style_enabling_buttons then
+        return
+    end
+    old_style_enabling_buttons:add_button(
         main_layout,
         main_menu_form:new_field(
         ),
