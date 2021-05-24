@@ -80,11 +80,13 @@ local add_input = function(
 )
     form:add_element(
         function(
-            data
+            data,
+            resources
         )
             return added(
                 layout,
-                data
+                data,
+                resources
             )
         end
     )
@@ -207,7 +209,8 @@ local new_form = function(
                 formspec = formspec .. element(
                     self.remembered_fields[
                         name
-                    ]
+                    ],
+                    self.resources
                 )
             end
             return formspec
@@ -872,24 +875,13 @@ local mapping_table = function(
 )
     return function(
         layout,
-        data
+        data,
+        resources
     )
         local mapping = lazy_mapping(
         )
-        local selected_index = 1
-        if data then
-            if data[
-                field
-            ] then
-                local exploded = minetest.explode_table_event(
-                    data[
-                        field
-                    ]
-                )
-                if "CHG" == exploded.type then
-                    selected_index = exploded.row
-                end
-            end
+        if not resources.selected_index then
+            resources.selected_index = 1
         end
         local entries = ""
         local delimiter = ""
@@ -1033,7 +1025,7 @@ local mapping_table = function(
             column_index = column_index + 2
             formspec = formspec .. ";color;text"
         end
-        formspec = formspec .. "]table[" .. position .. ";" .. adjusted_width .. ",5;" .. field .. ";" .. S(
+        formspec = formspec .. "]table[" .. position .. ";" .. adjusted_width .. ",4;" .. field .. ";" .. S(
             "Name"
         )
         column_index = 3
@@ -1046,7 +1038,7 @@ local mapping_table = function(
             column_index = column_index + 2
             formspec = formspec .. ",#FFFFFF," .. column.title
         end
-        formspec = formspec .. "," .. entries .. ";" .. selected_index .. "]"
+        formspec = formspec .. "," .. entries .. ";" .. resources.selected_index .. "]"
         return formspec
     end
 end
@@ -2360,9 +2352,11 @@ main_menu_form:add_button(
                 "Manage players"
             ),
             15,
-            9
+            13
         )
         local subject = form:new_field(
+        )
+        local group_member = form:new_field(
         )
         local mapping = student_all_group_axis_mapping_lazy(
             tabular_interface_columns
@@ -2379,7 +2373,8 @@ main_menu_form:add_button(
             function(
                 player,
                 formname,
-                fields
+                fields,
+                form
             )
                 local name = player:get_player_name(
                 )
@@ -2398,8 +2393,15 @@ main_menu_form:add_button(
                 )
                 local column_mapping = mapping(
                 )
-                if "CHG" == exploded.type
-                and column_mapping.rows[
+                form.resources.selected_index = exploded.row
+                if "CHG" ~= exploded.type then
+                    set_current_inventory_form(
+                        player,
+                        form
+                    )
+                    return true
+                end
+                if column_mapping.rows[
                     exploded.row
                 ]
                 and column_mapping.columns[
@@ -2507,12 +2509,74 @@ main_menu_form:add_button(
                             )
                         end
                     end
-                    set_current_inventory_form(
-                        player,
-                        form
-                    )
                 end
+                set_current_inventory_form(
+                    player,
+                    form
+                )
                 return true
+            end
+        )
+        form:add_input(
+            static_layout(
+                "0,8"
+            ),
+	    function(
+                layout,
+                data,
+                resources
+            )
+                if not resources.selected_index then
+                    resources.selected_index = 1
+                end
+                if not data then
+                    return ""
+                end
+                if not data[
+                    subject
+                ] then
+                    return ""
+                end
+                local column_mapping = mapping(
+                )
+                if not column_mapping.rows[
+                    resources.selected_index
+                ] then
+                    return ""
+                end
+                if "group" == column_mapping.rows[
+                    resources.selected_index
+                ].type then
+                    local position = layout:region_position(
+                        1,
+                        1
+                    )
+                        local formspec = "tablecolumns[text]table[" .. position .. ";7,4;" .. group_member .. ";" .. S(
+                        "Name"
+                    )
+                    edutest.for_all_members(
+                        column_mapping.rows[
+                            resources.selected_index
+                        ].name,
+                        function(
+                            player,
+                            name
+                        )
+                            formspec = formspec .. "," .. name
+                        end
+                    )
+                    formspec = formspec .. ";" .. 1 .. "]" 
+                    return formspec
+                end
+                return ""
+            end,
+            group_member,
+            function(
+                player,
+                formname,
+                fields
+            )
+	        return false
             end
         )
         return {
