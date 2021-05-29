@@ -52,3 +52,5 @@ Add teacher = Lehrer hinzufügen
 Remove teacher = Lehrer entfernen
 Grant teacher privilege = Lehrerprivileg erteilen
 Revoke teacher privilege = Lehrerprivileg entziehen
+Click on table cells to grant or revoke privileges = Auf Tabellenfelder klicken, um Rechte zu verleihen oder zu entziehen
+Create group = Gruppe anlegen

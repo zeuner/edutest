@@ -71,25 +71,29 @@ local string_width = function(
     return proportional + 1
 end
 
-local add_input = function(
+local remove_input = function(
     form,
-    layout,
-    added,
+    field
+)
+    print(
+        form
+    )
+    form.inputs[
+        field
+    ] = nil
+    form.handlers[
+        field
+    ] = nil
+    form.resources[
+        field
+    ] = nil
+end
+
+local register_input = function(
+    form,
     field,
     handler
 )
-    form:add_element(
-        function(
-            data,
-            resources
-        )
-            return added(
-                layout,
-                data,
-                resources
-            )
-        end
-    )
     if form.handlers[
         field
     ] then
@@ -112,30 +116,48 @@ local add_input = function(
     ] = handler
 end
 
-local add_button = function(
+local add_input = function(
     form,
     layout,
+    added,
+    field_handlers
+)
+    form:add_element(
+        function(
+            data,
+            resources
+        )
+            return added(
+                layout,
+                data,
+                resources
+            )
+        end
+    )
+    local field
+    local handler
+    for k, v in pairs(
+        field_handlers
+    ) do
+        if 0 == (k % 2) then
+            handler = v
+            form:register_input(
+                field,
+                handler
+            )
+        else
+            field = v
+        end
+    end
+end
+
+local register_button = function(
+    form,
     field,
     label,
     handler,
     preparation
 )
-    local width = string_width(
-        label
-    )
-    local height = 1.5
-    local size = width .. "," .. height
-    local position = layout:region_position(
-        width,
-        height
-    )
-    form:add_element(
-        function(
-            data
-        )
-            return "button[" .. position .. ";" .. size .. ";" .. field .. ";" .. label .. "]"
-        end
-    )
     if form.handlers[
         field
     ] then
@@ -172,12 +194,47 @@ local add_button = function(
     end
 end
 
+local add_button = function(
+    form,
+    layout,
+    field,
+    label,
+    handler,
+    preparation
+)
+    local width = string_width(
+        label
+    )
+    local height = 1.5
+    local size = width .. "," .. height
+    form:add_element(
+        function(
+            data
+        )
+            local position = layout:region_position(
+                width,
+                height
+            )
+            return "button[" .. position .. ";" .. size .. ";" .. field .. ";" .. label .. "]"
+        end
+    )
+    form:register_button(
+        field,
+        label,
+        handler,
+        preparation
+    )
+end
+
 local last_form_id = 0
 
 local new_form = function(
 )
     last_form_id = last_form_id + 1
     local constructed = {
+        register_button = register_button,
+        register_input = register_input,
+        remove_input = remove_input,
         add_button = add_button,
         add_input = add_input,
         form_id = last_form_id,
@@ -198,6 +255,19 @@ local new_form = function(
             self.last_field = self.last_field + 1
             return "edutest_field_" .. self.form_id .. "_" .. self.last_field
         end,
+        get_remembered_field = function(
+            self,
+            name
+        )
+            return self.remembered_fields[
+                name
+            ]
+        end,
+        get_resources = function(
+            self
+        )
+            return self.resources
+        end,
         get_formspec = function(
             self,
             name
@@ -207,10 +277,11 @@ local new_form = function(
                 self.formspec_elements
             ) do
                 formspec = formspec .. element(
-                    self.remembered_fields[
+                    self:get_remembered_field(
                         name
-                    ],
-                    self.resources
+                    ),
+                    self:get_resources(
+                    )
                 )
             end
             return formspec
@@ -229,11 +300,59 @@ local new_form = function(
     return constructed
 end
 
+local new_conditional_elements = function(
+    base_form
+)
+    local container = new_form(
+    )
+    container.base_form = base_form
+    local passing = {
+        "get_resources",
+        "get_remembered_field",
+        "new_field",
+        "register_input",
+        "remove_input",
+        "register_button"
+    }
+    for _, method in pairs(
+        passing
+    ) do
+        container[
+            method
+        ] = function(
+            self,
+            ...
+        )
+            return self.base_form[
+                method
+            ](
+                self.base_form,
+                ...
+            )
+        end
+    end
+    return container
+end
+
+local last_layout_id = 0
+
 local vertical_layout = function(
 )
+    last_layout_id = last_layout_id + 1
+    local row = 0.5
+    local column = 0
     return {
-        row = 0.5,
-        column = 0,
+        layout_id = last_layout_id,
+        row = row,
+        column = column,
+        row_initial = row,
+        column_initial = column,
+        reset = function(
+            self
+        )
+            self.column = self.column_initial
+            self.row = self.row_initial
+        end,
         region_position = function(
             self,
             width,
@@ -249,10 +368,22 @@ end
 local horizontal_layout = function(
     max_width
 )
+    last_layout_id = last_layout_id + 1
+    local row = 0.5
+    local column = 0
     return {
+        layout_id = last_layout_id,
         max_width = max_width,
-        row = 0.5,
-        column = 0,
+        row = row,
+        column = column,
+        row_initial = row,
+        column_initial = column,
+        reset = function(
+            self
+        )
+            self.column = self.column_initial
+            self.row = self.row_initial
+        end,
         line_break = function(
             self
         )
@@ -674,19 +805,138 @@ local boolean_column_width = function(
     return max_width
 end
 
-local student_all_group_axis_mapping = function(
-    columns
+local mapping_add_all = function(
+    mapping
+)
+    mapping.current_row = mapping.current_row + 1
+    mapping.rows[
+        mapping.current_row
+    ] = {
+        name = "students",
+        type = "all",
+    }
+end
+
+local mapping_add_groups = function(
+    mapping
+)
+    if edutest.for_all_groups then
+        edutest.for_all_groups(
+            function(
+                name,
+                members
+            )
+                mapping.current_row = mapping.current_row + 1
+                mapping.rows[
+                    mapping.current_row
+                ] = {
+                    type = "group",
+                    name = name,
+                }
+            end
+        )
+    end
+end
+
+local mapping_add_students = function(
+    mapping
+)
+    edutest.for_all_students(
+        function(
+            player,
+            name
+        )
+            mapping.current_row = mapping.current_row + 1
+            mapping.rows[
+                mapping.current_row
+            ] = {
+                type = "individual",
+                name = name,
+            }
+        end
+    )
+end
+
+local mapping_add_teachers = function(
+    mapping
+)
+    edutest.for_all_teachers(
+        function(
+            player,
+            name
+        )
+            mapping.current_row = mapping.current_row + 1
+            mapping.rows[
+                mapping.current_row
+            ] = {
+                type = "individual",
+                name = name,
+            }
+        end
+    )
+end
+
+local generic_axis_mapping = function(
+    columns,
+    categories
 )
     local mapping = {
+        current_row = 1,
         rows = {
         },
         columns = {
         },
     }
-    local row = 1
-    row = row + 1
+    for _, adder in pairs(
+        categories
+    ) do
+        adder(
+            mapping
+        )
+    end
+    local column_index = 1
+    for k, column in pairs(
+        columns
+    ) do
+        column_index = column_index + 2
+        mapping.columns[
+            column_index
+        ] = {
+            title = column.title,
+            check = column.check,
+            enabling = column.enabling,
+            disabling = column.disabling,
+        }
+    end
+    return mapping
+end
+
+local generic_axis_mapping_lazy = function(
+    columns,
+    categories
+)
+    return function(
+    )
+        return generic_axis_mapping(
+            columns,
+            categories
+        )
+    end
+end
+
+local student_all_group_axis_mapping = function(
+    columns
+)
+    local mapping = {
+        current_row = 1,
+        rows = {
+        },
+        columns = {
+        },
+    }
+    mapping.current_row = mapping.current_row + 1
     mapping.rows[
-        row
+        mapping.current_row
     ] = {
         name = "students",
         type = "all",
@@ -697,9 +947,9 @@ local student_all_group_axis_mapping = function(
                 name,
                 members
             )
-                row = row + 1
+                mapping.current_row = mapping.current_row + 1
                 mapping.rows[
-                    row
+                    mapping.current_row
                 ] = {
                     type = "group",
                     name = name,
@@ -712,9 +962,9 @@ local student_all_group_axis_mapping = function(
             player,
             name
         )
-            row = row + 1
+            mapping.current_row = mapping.current_row + 1
             mapping.rows[
-                row
+                mapping.current_row
             ] = {
                 type = "individual",
                 name = name,
@@ -895,7 +1145,6 @@ local mapping_table = function(
             local row = mapping.rows[
                 row_index
             ]
-            row_index = row_index + 1
             local name = row.name
             local type = row.type
             local entry
@@ -903,6 +1152,11 @@ local mapping_table = function(
                 entry = name
             elseif 'group' == type then
                 entry = group_prefix .. name
+                if resources.temp_selected_group
+                and resources.temp_selected_group == name then
+                    resources.selected_index = row_index
+                    resources.temp_selected_group = nil
+                end
             else
                 entry = all_students_entry
             end
@@ -997,6 +1251,7 @@ local mapping_table = function(
             end
             entries = entries .. delimiter .. entry
             delimiter = ","
+            row_index = row_index + 1
         end
         local height = 1.5
         local full_width = max_width
@@ -1025,7 +1280,9 @@ local mapping_table = function(
             column_index = column_index + 2
             formspec = formspec .. ";color;text"
         end
-        formspec = formspec .. "]table[" .. position .. ";" .. adjusted_width .. ",4;" .. field .. ";" .. S(
+        formspec = formspec .. "]table[" .. position .. ";"
+        formspec = formspec .. adjusted_width .. ",4;"
+        formspec = formspec .. field .. ";" .. S(
             "Name"
         )
         column_index = 3
@@ -1038,7 +1295,8 @@ local mapping_table = function(
             column_index = column_index + 2
             formspec = formspec .. ",#FFFFFF," .. column.title
         end
-        formspec = formspec .. "," .. entries .. ";" .. resources.selected_index .. "]"
+        formspec = formspec .. "," .. entries .. ";" .. resources.selected_index
+        formspec = formspec .. "]"
         return formspec
     end
 end
@@ -1400,6 +1658,8 @@ local new_sub_form = function(
             fields,
             form
         )
+            main_layout:reset(
+            )
             set_current_inventory_form(
                 player,
                 main_menu_form
@@ -2061,6 +2321,28 @@ local apply_operation = function(
     )
 end
 
+local apply_to_row = function(
+    player_name,
+    applied,
+    row
+)
+    if "group" == row.type then
+        return applied:to_group(
+            player_name,
+            row.name
+        )
+    end
+    if "all" == row.type then
+        return applied:to_students(
+            player_name
+        )
+    end
+    return applied:to_individual(
+        player_name,
+        row.name
+    )
+end
+
 local tabular_interface_columns = {
 }
 
@@ -2122,7 +2404,9 @@ local add_enabling_button = function(
                     subject,
                     enabled_check
                 ),
-                subject
+                {
+                    subject
+                }
             )
             form:add_button(
                 static_layout(
@@ -2322,6 +2606,269 @@ else
     )
 end
 
+local member_table_data = function(
+    field,
+    group
+)
+    local result = {
+        width = 7,
+        height = 4,
+        field = field
+    }
+    local rows = {
+    }
+    rows[
+        #rows + 1
+    ] = S(
+        "Name"
+    )
+    edutest.for_all_members(
+        group,
+        function(
+            player,
+            name
+        )
+            rows[
+                #rows + 1
+            ] = name
+        end
+    )
+    local columns = {
+    }
+    columns[
+        #columns + 1
+    ] = "player_name"
+    result.rows = rows
+    result.columns = columns
+    return result
+end
+
+local nonmember_table_data = function(
+    field,
+    group
+)
+    local result = {
+        width = 7,
+        height = 4,
+        field = field
+    }
+    local rows = {
+    }
+    rows[
+        #rows + 1
+    ] = S(
+        "Name"
+    )
+    edutest.for_all_nonmembers(
+        group,
+        function(
+            player,
+            name
+        )
+            rows[
+                #rows + 1
+            ] = name
+        end
+    )
+    local columns = {
+    }
+    columns[
+        #columns + 1
+    ] = "player_name"
+    result.rows = rows
+    result.columns = columns
+    return result
+end
+
+local annotated_table_event = function(
+    event_string,
+    table_data
+)
+    local result = minetest.explode_table_event(
+        event_string
+    )
+    result.row_name = table_data.rows[
+        result.row
+    ]
+    result.column_name = table_data.columns[
+        result.column
+    ]
+    return result
+end
+
+local data_table = function(
+    layout,
+    data,
+    selected_value
+)
+    return function (
+    )
+        local width = data.width
+        local height = data.height
+        local position = layout:region_position(
+            width,
+            height
+        )
+        local selected_row = 1
+        local added_row = 1
+        formspec = "tablecolumns[text]table["
+        formspec = formspec .. position
+        formspec = formspec .. ";" .. width .. "," .. height .. ";"
+        formspec = formspec .. data.field .. ";"
+        local delimiter = ""
+        for k, v in pairs(
+            data.rows
+        ) do
+            if selected_value == v then
+                selected_row = added_row
+            end
+            formspec = formspec .. delimiter .. v
+            delimiter = ","
+	    added_row = added_row + 1
+        end
+        formspec = formspec .. ";" .. selected_row .. "]"
+        return formspec
+    end
+end
+
+local get_group_controls = function(
+    bring_controls,
+    group_member_controls,
+    add_to_group,
+    remove_from_group,
+    column_mapping,
+    form,
+    layout,
+    group_member,
+    group_nonmember,
+    resources
+)
+    local group_member_controls = new_conditional_elements(
+        form
+    )
+    resources.group_member_table = member_table_data(
+        group_member,
+        column_mapping.rows[
+            resources.selected_index
+        ].name
+    )
+    group_member_controls:add_element(
+        data_table(
+            static_layout(
+                "0,7"
+            ),
+            resources.group_member_table,
+            form.resources.selected_member
+        )
+    )
+    resources.group_nonmember_table = nonmember_table_data(
+        group_nonmember,
+        column_mapping.rows[
+            resources.selected_index
+        ].name
+    )
+    group_member_controls:add_element(
+        data_table(
+            static_layout(
+                "8,7"
+            ),
+            resources.group_nonmember_table,
+            form.resources.selected_nonmember
+        )
+    )
+    group_member_controls:remove_input(
+        add_to_group
+    )
+    group_member_controls:add_button(
+        static_layout(
+            "7.13,8"
+        ),
+        add_to_group,
+        "<",
+        function(
+            player,
+            formname,
+            fields,
+            form
+        )
+            local added = form.resources.selected_nonmember
+            local name = player:get_player_name(
+            )
+            if not added then
+                minetest.chat_send_player(
+                    name,
+                    "EDUtest: " .. S(
+                        "no player selected"
+                    )
+                )
+                return true
+            end
+            local group = column_mapping.rows[
+                form.resources.selected_index
+            ]
+            minetest.chatcommands[
+                "enter_group"
+            ].func(
+                name,
+                group.name .. " " .. added
+            )
+            set_current_inventory_form(
+                player,
+                form
+            )
+            return true
+        end
+    )
+    group_member_controls:remove_input(
+        remove_from_group
+    )
+    group_member_controls:add_button(
+        static_layout(
+            "7.13,9"
+        ),
+        remove_from_group,
+        ">",
+        function(
+            player,
+            formname,
+            fields,
+            form
+        )
+            local removed = form.resources.selected_member
+            local name = player:get_player_name(
+            )
+            if not removed then
+                minetest.chat_send_player(
+                    name,
+                    "EDUtest: " .. S(
+                        "no player selected"
+                    )
+                )
+                return true
+            end
+            local group = column_mapping.rows[
+                form.resources.selected_index
+            ]
+            minetest.chatcommands[
+                "leave_group"
+            ].func(
+                name,
+                group.name .. " " .. removed
+            )
+            set_current_inventory_form(
+                player,
+                form
+            )
+            return true
+        end
+    )
+    local formspec = group_member_controls:get_formspec(
+    )
+    formspec = formspec .. bring_controls:get_formspec(
+    )
+    return formspec
+end
+
 main_menu_form:add_button(
     main_layout,
     main_menu_form:new_field(
@@ -2354,12 +2901,288 @@ main_menu_form:add_button(
             15,
             13
         )
+        local mapping = generic_axis_mapping_lazy(
+            tabular_interface_columns,
+            {
+                mapping_add_all,
+                mapping_add_groups,
+                mapping_add_students
+            }
+        )
+        local group_controls = new_conditional_elements(
+            form
+        )
+        local group_control_layout = horizontal_layout(
+            15
+        )
+        group_control_layout.row_initial = 8
+        group_control_layout.column_initial = 0.5
+        local new_group = form:new_field(
+        )
+        group_controls:add_input(
+            group_control_layout,
+            text_field(
+                new_group,
+                6,
+                1,
+                S(
+                    "Name for new group"
+                )
+            ),
+            {
+                new_group
+            }
+        )
+        group_controls:add_button(
+            group_control_layout,
+            form:new_field(
+            ),
+            S(
+                "Create group"
+            ),
+            function(
+                player,
+                formname,
+                fields
+            )
+                local name = player:get_player_name(
+                )
+                local group_name
+                group_name = fields[
+                    new_group
+                ]
+                group_name = string.gsub(
+                    group_name,
+                    " ",
+                    "_"
+                )
+                minetest.chatcommands[
+                    "create_group"
+                ].func(
+                    name,
+                    group_name
+                )
+                form.resources.temp_selected_group = group_name
+                set_current_inventory_form(
+                    player,
+                    form
+                )
+                return true
+            end
+        )
+        local bring_controls = new_conditional_elements(
+            form
+        )
+        local bring_control_layout = horizontal_layout(
+            15
+        )
+        bring_control_layout.row_initial = 12
+        local other_teleport = form:new_field(
+        )
+        bring_controls:add_button(
+            bring_control_layout,
+            other_teleport,
+            S(
+                "Bring student"
+            ),
+            function(
+                player,
+                formname,
+                fields,
+                form
+            )
+                local name = player:get_player_name(
+                )
+                if not form.resources.selected_index then
+                    form.resources.selected_index = 1
+                end
+                local column_mapping = mapping(
+                )
+                if not column_mapping.rows[
+                    form.resources.selected_index
+                ] then
+                    return false
+                end
+                if "all" == column_mapping.rows[
+                    form.resources.selected_index
+                ].type then
+                    minetest.chatcommands[
+                        "every_student"
+                    ].func(
+                        name,
+                        teleport_command .. " subject " .. name
+                    )
+                    return true
+                end
+                if "group" == column_mapping.rows[
+                    form.resources.selected_index
+                ].type then
+                    minetest.chatcommands[
+                        "every_member"
+                    ].func(
+                        name,
+                        column_mapping.rows[
+                            form.resources.selected_index
+                        ].name .. " " .. teleport_command .. " subject " .. name
+                    )
+                    return true
+                end
+                if "individual" == column_mapping.rows[
+                    form.resources.selected_index
+                ].type then
+                    minetest.chatcommands[
+                        teleport_command
+                    ].func(
+                        name,
+                        column_mapping.rows[
+                            form.resources.selected_index
+                        ].name .. " " .. name
+                    )
+                    return true
+                end
+                return false
+            end
+        )
+        local individual_controls = new_conditional_elements(
+            form
+        )
+        local individual_control_layout = horizontal_layout(
+            15
+        )
+        individual_control_layout.row_initial = 7
+        local self_teleport = form:new_field(
+        )
+        individual_controls:add_button(
+            individual_control_layout,
+            self_teleport,
+            S(
+                "Teleport to student"
+            ),
+            function(
+                player,
+                formname,
+                fields,
+                form
+            )
+                local name = player:get_player_name(
+                )
+                if not form.resources.selected_index then
+                    form.resources.selected_index = 1
+                end
+                local column_mapping = mapping(
+                )
+                if not column_mapping.rows[
+                    form.resources.selected_index
+                ] then
+                    return false
+                end
+                if "individual" == column_mapping.rows[
+                    form.resources.selected_index
+                ].type then
+                    minetest.chatcommands[
+                        teleport_command
+                    ].func(
+                        name,
+                        name .. " " .. column_mapping.rows[
+                            form.resources.selected_index
+                        ].name
+                    )
+                    return true
+                end
+                return false
+            end
+        )
+        if nil ~= minetest.chatcommands[
+            "return"
+        ] then
+            local other_previous_position = form:new_field(
+            )
+            bring_controls:add_button(
+                bring_control_layout,
+                other_previous_position,
+                S(
+                    "Previous position"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields,
+                    form
+                )
+                    local name = player:get_player_name(
+                    )
+                    if not form.resources.selected_index then
+                        form.resources.selected_index = 1
+                    end
+                    local column_mapping = mapping(
+                    )
+                    if not column_mapping.rows[
+                        form.resources.selected_index
+                    ] then
+                        return false
+                    end
+                    apply_to_row(
+                        name,
+                        unary_command_application(
+                            "return"
+                        ),
+                        column_mapping.rows[
+                            form.resources.selected_index
+                        ]
+                    )
+                    return true
+                end
+            )
+            local self_previous_position = form:new_field(
+            )
+            individual_controls:add_button(
+                individual_control_layout,
+                self_previous_position,
+                S(
+                    "Previous position"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields,
+                    form
+                )
+                    local name = player:get_player_name(
+                    )
+                    if not form.resources.selected_index then
+                        form.resources.selected_index = 1
+                    end
+                    local column_mapping = mapping(
+                    )
+                    if not column_mapping.rows[
+                        form.resources.selected_index
+                    ] then
+                        return false
+                    end
+                    if "individual" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "return"
+                        ].func(
+                            name,
+                            ""
+                        )
+                        return true
+                    end
+                    return false
+                end
+            )
+        end
         local subject = form:new_field(
         )
         local group_member = form:new_field(
         )
-        local mapping = student_all_group_axis_mapping_lazy(
-            tabular_interface_columns
+        local group_nonmember = form:new_field(
+        )
+        local add_to_group = form:new_field(
+        )
+        local remove_from_group = form:new_field(
         )
         form:add_input(
             static_layout(
@@ -2369,215 +3192,272 @@ main_menu_form:add_button(
                 subject,
                 mapping
             ),
-            subject,
-            function(
-                player,
-                formname,
-                fields,
-                form
-            )
-                local name = player:get_player_name(
-                )
-                if false == check_field(
-                    name,
+            {
+                subject,
+                function(
+                    player,
                     formname,
                     fields,
-                    subject
-                ) then
-                    return false
-                end
-                local exploded = minetest.explode_table_event(
-                    fields[
+                    form
+                )
+                    local name = player:get_player_name(
+                    )
+                    if false == check_field(
+                        name,
+                        formname,
+                        fields,
                         subject
+                    ) then
+                        return false
+                    end
+                    local exploded = minetest.explode_table_event(
+                        fields[
+                            subject
+                        ]
+                    )
+                    local column_mapping = mapping(
+                    )
+                    form.resources.selected_index = exploded.row
+                    if "CHG" ~= exploded.type then
+                        set_current_inventory_form(
+                            player,
+                            form
+                        )
+                        return true
+                    end
+                    if column_mapping.rows[
+                        exploded.row
                     ]
-                )
-                local column_mapping = mapping(
-                )
-                form.resources.selected_index = exploded.row
-                if "CHG" ~= exploded.type then
+                    and column_mapping.columns[
+                        exploded.column
+                    ] then
+                        local subject_name = column_mapping.rows[
+                            exploded.row
+                        ].name
+                        local status
+                        if "individual" == column_mapping.rows[
+                            exploded.row
+                        ].type then
+                            if column_mapping.columns[
+                                exploded.column
+                            ].check(
+                                subject_name
+                            ) then
+                                status = "on"
+                                column_mapping.columns[
+                                    exploded.column
+                                ].disabling:to_individual(
+                                    name,
+                                    subject_name
+                                )
+                            else
+                                status = "off"
+                                column_mapping.columns[
+                                    exploded.column
+                                ].enabling:to_individual(
+                                    name,
+                                    subject_name
+                                )
+                            end
+                        elseif "group" == column_mapping.rows[
+                            exploded.row
+                        ].type then
+                            local enabled_count = 0
+                            local disabled_count = 0
+                            edutest.for_all_members(
+                                subject_name,
+                                function(
+                                    player,
+                                    name
+                                )
+                                    if column_mapping.columns[
+                                        exploded.column
+                                    ].check(
+                                        name
+                                    ) then
+                                        enabled_count = enabled_count + 1
+                                    else
+                                        disabled_count = disabled_count + 1
+                                    end
+                                end
+                            )
+                            if 0 == disabled_count then
+                                status = "on"
+                                column_mapping.columns[
+                                    exploded.column
+                                ].disabling:to_group(
+                                    name,
+                                    subject_name
+                                )
+                            else
+                                status = "off"
+                                column_mapping.columns[
+                                    exploded.column
+                                ].enabling:to_group(
+                                    name,
+                                    subject_name
+                                )
+                            end
+                        else
+                            local enabled_count = 0
+                            local disabled_count = 0
+                            edutest.for_all_students(
+                                function(
+                                    player,
+                                    name
+                                )
+                                    if column_mapping.columns[
+                                        exploded.column
+                                    ].check(
+                                        name
+                                    ) then
+                                        enabled_count = enabled_count + 1
+                                    else
+                                        disabled_count = disabled_count + 1
+                                    end
+                                end
+                            )
+                            if 0 == disabled_count then
+                                status = "on"
+                                column_mapping.columns[
+                                    exploded.column
+                                ].disabling:to_students(
+                                    name
+                                )
+                            else
+                                status = "off"
+                                column_mapping.columns[
+                                    exploded.column
+                                ].enabling:to_students(
+                                    name
+                                )
+                            end
+                        end
+                    end
                     set_current_inventory_form(
                         player,
                         form
                     )
                     return true
                 end
-                if column_mapping.rows[
-                    exploded.row
-                ]
-                and column_mapping.columns[
-                    exploded.column
-                ] then
-                    local subject_name = column_mapping.rows[
-                        exploded.row
-                    ].name
-                    local status
-                    if "individual" == column_mapping.rows[
-                        exploded.row
-                    ].type then
-                        if column_mapping.columns[
-                            exploded.column
-                        ].check(
-                            subject_name
-                        ) then
-                            status = "on"
-                            column_mapping.columns[
-                                exploded.column
-                            ].disabling:to_individual(
-                                name,
-                                subject_name
-                            )
-                        else
-                            status = "off"
-                            column_mapping.columns[
-                                exploded.column
-                            ].enabling:to_individual(
-                                name,
-                                subject_name
-                            )
-                        end
-                    elseif "group" == column_mapping.rows[
-                        exploded.row
-                    ].type then
-                        local enabled_count = 0
-                        local disabled_count = 0
-                        edutest.for_all_members(
-                            subject_name,
-                            function(
-                                player,
-                                name
-                            )
-                                if column_mapping.columns[
-                                    exploded.column
-                                ].check(
-                                    name
-                                ) then
-                                    enabled_count = enabled_count + 1
-                                else
-                                    disabled_count = disabled_count + 1
-                                end
-                            end
-                        )
-                        if 0 == disabled_count then
-                            status = "on"
-                            column_mapping.columns[
-                                exploded.column
-                            ].disabling:to_group(
-                                name,
-                                subject_name
-                            )
-                        else
-                            status = "off"
-                            column_mapping.columns[
-                                exploded.column
-                            ].enabling:to_group(
-                                name,
-                                subject_name
-                            )
-                        end
-                    else
-                        local enabled_count = 0
-                        local disabled_count = 0
-                        edutest.for_all_students(
-                            function(
-                                player,
-                                name
-                            )
-                                if column_mapping.columns[
-                                    exploded.column
-                                ].check(
-                                    name
-                                ) then
-                                    enabled_count = enabled_count + 1
-                                else
-                                    disabled_count = disabled_count + 1
-                                end
-                            end
-                        )
-                        if 0 == disabled_count then
-                            status = "on"
-                            column_mapping.columns[
-                                exploded.column
-                            ].disabling:to_students(
-                                name
-                            )
-                        else
-                            status = "off"
-                            column_mapping.columns[
-                                exploded.column
-                            ].enabling:to_students(
-                                name
-                            )
-                        end
-                    end
-                end
-                set_current_inventory_form(
-                    player,
-                    form
-                )
-                return true
-            end
+            }
         )
         form:add_input(
             static_layout(
-                "0,8"
+                "0,6"
             ),
-	    function(
+            function(
                 layout,
                 data,
                 resources
             )
+                group_control_layout:reset(
+                )
                 if not resources.selected_index then
                     resources.selected_index = 1
                 end
+                local help = "label[" .. layout:region_position(
+                    1,
+                    1
+                ) .. ";" .. S(
+                    "Click on table cells to grant or revoke privileges"
+                ) .. "]"
                 if not data then
-                    return ""
+                    return help .. group_controls:get_formspec(
+                    )
                 end
                 if not data[
                     subject
                 ] then
-                    return ""
+                    return help .. group_controls:get_formspec(
+                    )
                 end
                 local column_mapping = mapping(
                 )
                 if not column_mapping.rows[
                     resources.selected_index
                 ] then
-                    return ""
+                    return help .. group_controls:get_formspec(
+                    )
                 end
                 if "group" == column_mapping.rows[
                     resources.selected_index
                 ].type then
-                    local position = layout:region_position(
-                        1,
-                        1
+                    bring_control_layout:reset(
                     )
-                        local formspec = "tablecolumns[text]table[" .. position .. ";7,4;" .. group_member .. ";" .. S(
-                        "Name"
+                    return get_group_controls(
+                        bring_controls,
+                        group_member_controls,
+                        add_to_group,
+                        remove_from_group,
+                        column_mapping,
+                        form,
+                        layout,
+                        group_member,
+                        group_nonmember,
+                        resources
                     )
-                    edutest.for_all_members(
-                        column_mapping.rows[
-                            resources.selected_index
-                        ].name,
-                        function(
-                            player,
-                            name
-                        )
-                            formspec = formspec .. "," .. name
-                        end
-                    )
-                    formspec = formspec .. ";" .. 1 .. "]" 
-                    return formspec
                 end
-                return ""
+                if "individual" == column_mapping.rows[
+                    resources.selected_index
+                ].type then
+                    individual_control_layout:reset(
+                    )
+                    bring_control_layout:reset(
+                    )
+                    return individual_controls:get_formspec(
+                    ) .. bring_controls:get_formspec(
+                    )
+                end
+                bring_control_layout:reset(
+                )
+                return bring_controls:get_formspec(
+                )
             end,
-            group_member,
-            function(
-                player,
-                formname,
-                fields
-            )
-	        return false
-            end
+            {
+                group_member,
+                function(
+                    player,
+                    formname,
+                    fields,
+                    form,
+                    field
+                )
+                    local annotated = annotated_table_event(
+                        fields[
+                            field
+                        ],
+                        form.resources.group_member_table
+                    )
+                    if 1 == annotated.row then
+                        form.resources.selected_member = nil
+                    else
+                        form.resources.selected_member = annotated.row_name
+                    end
+                    return false
+                end,
+                group_nonmember,
+                function(
+                    player,
+                    formname,
+                    fields,
+                    form,
+                    field
+                )
+                    local annotated = annotated_table_event(
+                        fields[
+                            field
+                        ],
+                        form.resources.group_nonmember_table
+                    )
+                    if 1 == annotated.row then
+                        form.resources.selected_nonmember = nil
+                    else
+                        form.resources.selected_nonmember = annotated.row_name
+                    end
+                    return false
+                end
+            }
         )
         return {
             form = form
@@ -2624,7 +3504,9 @@ main_menu_form:add_button(
             basic_student_dropdown(
                 subject
             ),
-            subject
+            {
+                subject
+            }
         )
         form:add_button(
             static_layout(
@@ -2721,7 +3603,9 @@ main_menu_form:add_button(
             basic_teacher_dropdown(
                 subject
             ),
-            subject
+            {
+                subject
+            }
         )
         form:add_button(
             static_layout(
@@ -2773,280 +3657,6 @@ main_menu_form:add_button(
                 return true
             end
         )
-        return {
-            form = form
-        }
-    end
-)
-
-main_menu_form:add_button(
-    main_layout,
-    main_menu_form:new_field(
-    ),
-    S(
-        "Teleport to student"
-    ),
-    function(
-        player,
-        formname,
-        fields,
-        form,
-        field
-    )
-        local subform = form.resources[
-            field
-        ].form
-        set_current_inventory_form(
-            player,
-            subform
-        )
-        return true
-    end,
-    function(
-    )
-        local form = new_sub_form(
-            "EDUtest > " .. S(
-                "Teleport to student"
-            )
-        )
-        local subject = form:new_field(
-        )
-        form:add_input(
-            static_layout(
-                "0,2"
-            ),
-            basic_student_dropdown(
-                subject
-            ),
-            subject
-        )
-        form:add_button(
-            static_layout(
-                "0,3"
-            ),
-            form:new_field(
-            ),
-            S(
-                "Teleport"
-            ),
-            function(
-                player,
-                formname,
-                fields
-            )
-                local name = player:get_player_name(
-                )
-                if false == check_field(
-                    name,
-                    formname,
-                    fields,
-                    subject
-                ) then
-                    return false
-                end
-                if choose_student_entry == fields[
-                    subject
-                ] then
-                    return false
-                end
-                minetest.chatcommands[
-                    teleport_command
-                ].func(
-                    name,
-                    name .. " " .. fields[
-                        subject
-                    ]
-                )
-                return true
-            end
-        )
-        if nil ~= minetest.chatcommands[
-            "return"
-        ] then
-            form:add_button(
-                static_layout(
-                    "3,3"
-                ),
-                form:new_field(
-                ),
-                S(
-                    "Previous position"
-                ),
-                function(
-                    player,
-                    formname,
-                    fields
-                )
-                    local name = player:get_player_name(
-                    )
-                    minetest.chatcommands[
-                        "return"
-                    ].func(
-                        name,
-                        ""
-                    )
-                    return true
-                end
-            )
-        end
-        return {
-            form = form
-        }
-    end
-)
-
-main_menu_form:add_button(
-    main_layout,
-    main_menu_form:new_field(
-    ),
-    S(
-        "Bring student"
-    ),
-    function(
-        player,
-        formname,
-        fields,
-        form,
-        field
-    )
-        local subform = form.resources[
-            field
-        ].form
-        set_current_inventory_form(
-            player,
-            subform
-        )
-        return true
-    end,
-    function(
-    )
-        local form = new_sub_form(
-            "EDUtest > " .. S(
-                "Bring student"
-            )
-        )
-        local subject = form:new_field(
-        )
-        form:add_input(
-            static_layout(
-                "0,2"
-            ),
-            student_dropdown(
-                subject,
-                always_disabled
-            ),
-            subject
-        )
-        form:add_button(
-            static_layout(
-                "0,3"
-            ),
-            form:new_field(
-            ),
-            S(
-                "Bring"
-            ),
-            function(
-                player,
-                formname,
-                fields
-            )
-                local name = player:get_player_name(
-                )
-                if false == check_field(
-                    name,
-                    formname,
-                    fields,
-                    subject
-                ) then
-                    return false
-                end
-                if group_prefix == string.sub(
-                    fields[
-                        subject
-                    ],
-                    1,
-                    string.len(
-                        group_prefix
-                    )
-                ) then
-                    local group_name = string.sub(
-                        fields[
-                            subject
-                        ],
-                        string.len(
-                            group_prefix
-                        ) + 1
-                    )
-                    minetest.chatcommands[
-                        "every_member"
-                    ].func(
-                        name,
-                        group_name .. " " .. teleport_command .. " subject " .. name
-                    )
-                    return true
-                end
-                if all_students_entry == fields[
-                    subject
-                ] then
-                    minetest.chatcommands[
-                        "every_student"
-                    ].func(
-                        name,
-                        teleport_command .. " subject " .. name
-                    )
-                    return true
-                end
-                minetest.chatcommands[
-                    teleport_command
-                ].func(
-                    name,
-                    fields[
-                        subject
-                    ] .. " " .. name
-                )
-                return true
-            end
-        )
-        if nil ~= minetest.chatcommands[
-            "return"
-        ] then
-            form:add_button(
-                static_layout(
-                    "3,3"
-                ),
-                form:new_field(
-                ),
-                S(
-                    "Previous position"
-                ),
-                function(
-                    player,
-                    formname,
-                    fields
-                )
-                    local name = player:get_player_name(
-                    )
-                    if false == check_field(
-                        name,
-                        formname,
-                        fields,
-                        subject
-                    ) then
-                        return false
-                    end
-                    return apply_operation(
-                        name,
-                        unary_command_application(
-                            "return"
-                        ),
-                        fields[
-                            subject
-                        ]
-                    )
-                end
-            )
-        end
         return {
             form = form
         }
@@ -3122,7 +3732,9 @@ if nil ~= minetest.chatcommands[
                     subject,
                     always_disabled
                 ),
-                subject
+                {
+                    subject
+                }
             )
             local notification = form:new_field(
             )
@@ -3138,7 +3750,9 @@ if nil ~= minetest.chatcommands[
                         "Notification"
                     )
                 ),
-                notification
+                {
+                    notification
+                }
             )
             form:add_button(
                 static_layout(
@@ -3274,7 +3888,9 @@ if edutest.for_all_groups then
                 basic_student_dropdown(
                     subject
                 ),
-                subject
+                {
+                    subject
+                }
             )
             local group = form:new_field(
             )
@@ -3285,7 +3901,9 @@ if edutest.for_all_groups then
                 group_dropdown(
                     group
                 ),
-                group
+                {
+                    group
+                }
             )
             local new_group = form:new_field(
             )
@@ -3301,7 +3919,9 @@ if edutest.for_all_groups then
                         "Name for new group"
                     )
                 ),
-                new_group
+                {
+                    new_group
+                }
             )
             form:add_button(
                 static_layout(
@@ -3604,7 +4224,9 @@ if nil ~= minetest.chatcommands[
                 basic_student_dropdown_with_groups(
                     owner
                 ),
-                owner
+                {
+                    owner
+                }
             )
             local area_name = form:new_field(
             )
@@ -3620,7 +4242,9 @@ if nil ~= minetest.chatcommands[
                         "Name for new area"
                     )
                 ),
-                area_name
+                {
+                    area_name
+                }
             )
             form:add_button(
                 static_layout(
@@ -3847,14 +4471,6 @@ local on_player_receive_fields = function(
 )
     local name = player:get_player_name(
     )
-    print(
-        "DEBUG:"
-    )
-    field_debug_dump(
-        name,
-        formname,
-        fields
-    )
     local contexts = player_context_form[
         name
     ]
@@ -3942,6 +4558,8 @@ if rawget(
             )
                 local name = player:get_player_name(
                 )
+                main_layout:reset(
+                )
                 set_current_inventory_form(
                     player,
                     main_menu_form
@@ -3973,6 +4591,8 @@ elseif rawget(
                 player,
                 context
             )
+                main_layout:reset(
+                )
                 return main_menu_form:get_formspec(
                     player:get_player_name(
                     )

@@ -52,3 +52,5 @@ Add teacher =
 Remove teacher =
 Grant teacher privilege =
 Revoke teacher privilege =
+Click on table cells to grant or revoke privileges =
+Create group =
