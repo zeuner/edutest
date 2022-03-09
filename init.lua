@@ -213,7 +213,9 @@ local add_button = function(
         )
             local position = layout:region_position(
                 width,
-                height
+                height,
+                0,
+                0
             )
             return "button[" .. position .. ";" .. size .. ";" .. field .. ";" .. label .. "]"
         end
@@ -356,9 +358,15 @@ local vertical_layout = function(
         region_position = function(
             self,
             width,
-            height
+            height,
+            offset_column,
+            offset_row
         )
-            local result = self.column .. "," .. self.row
+            local result = (
+                self.column + offset_column
+            ) .. "," .. (
+                self.row + offset_row
+            )
             self.row = self.row + 1
             return result
         end,
@@ -393,7 +401,9 @@ local horizontal_layout = function(
         region_position = function(
             self,
             width,
-            height
+            height,
+            offset_column,
+            offset_row
         )
             local new_column = self.column + width
             if max_width <= new_column then
@@ -401,7 +411,11 @@ local horizontal_layout = function(
                 self.row = self.row + 1
                 new_column = self.column + width
             end
-            local result = self.column .. "," .. self.row
+            local result = (
+                self.column + offset_column
+            ) .. "," .. (
+                self.row + offset_row
+            )
             self.column = new_column
             return result
         end,
@@ -684,8 +698,28 @@ local text_field = function(
     )
         return "field[" .. layout:region_position(
             width,
-            height
+            height,
+            0.2,
+            0.5
         ) .. ";" .. width .. "," .. height .. ";" .. field .. ";" .. label .. ";]"
+    end
+end
+
+local password_field = function(
+    field,
+    width,
+    height,
+    label
+)
+    return function(
+        layout
+    )
+        return "pwdfield[" .. layout:region_position(
+            width,
+            height,
+            0.2,
+            0.5
+        ) .. ";" .. width .. "," .. height .. ";" .. field .. ";" .. label .. "]"
     end
 end
 
@@ -745,7 +779,9 @@ local basic_student_dropdown = function(
         local height = 1.5
         return "dropdown[" .. layout:region_position(
             max_width,
-            height
+            height,
+            0,
+            0
         ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";" .. selected_index .. "]"
     end
 end
@@ -842,6 +878,25 @@ local mapping_add_students = function(
     mapping
 )
     edutest.for_all_students(
+        function(
+            player,
+            name
+        )
+            mapping.current_row = mapping.current_row + 1
+            mapping.rows[
+                mapping.current_row
+            ] = {
+                type = "individual",
+                name = name,
+            }
+        end
+    )
+end
+
+local mapping_add_offline_students = function(
+    mapping
+)
+    edutest.for_all_offline_students(
         function(
             player,
             name
@@ -1270,7 +1325,9 @@ local mapping_table = function(
         local adjusted_width = full_width * 2 / 3
         local position = layout:region_position(
             adjusted_width,
-            height
+            height,
+            0,
+            0
         )
         local formspec = "tablecolumns[text"
         column_index = 3
@@ -1349,7 +1406,9 @@ local basic_teacher_dropdown = function(
         local height = 1.5
         return "dropdown[" .. layout:region_position(
             max_width,
-            height
+            height,
+            0,
+            0
         ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";" .. selected_index .. "]"
     end
 end
@@ -1445,7 +1504,9 @@ local student_dropdown = function(
         local height = 1.5
         return "dropdown[" .. layout:region_position(
             max_width,
-            height
+            height,
+            0,
+            0
         ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";" .. selected_index .. "]"
     end
 end
@@ -1531,7 +1592,9 @@ local basic_student_dropdown_with_groups = function(
         local height = 1.5
         return "dropdown[" .. layout:region_position(
             max_width,
-            height
+            height,
+            0,
+            0
         ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";" .. selected_index .. "]"
     end
 end
@@ -1607,7 +1670,9 @@ local group_dropdown = function(
         local height = 1.5
         return "dropdown[" .. layout:region_position(
             max_width,
-            height
+            height,
+            0,
+            0
         ) .. ";" .. max_width .. ";" .. field .. ";" .. entries .. ";" .. selected_index .. "]"
     end
 end
@@ -2707,7 +2772,9 @@ local data_table = function(
         local height = data.height
         local position = layout:region_position(
             width,
-            height
+            height,
+            0,
+            0
         )
         local selected_row = 1
         local added_row = 1
@@ -2906,7 +2973,8 @@ main_menu_form:add_button(
             {
                 mapping_add_all,
                 mapping_add_groups,
-                mapping_add_students
+                mapping_add_students,
+                mapping_add_offline_students
             }
         )
         local group_controls = new_conditional_elements(
@@ -3174,6 +3242,65 @@ main_menu_form:add_button(
                 end
             )
         end
+        local new_password = form:new_field(
+        )
+        individual_controls:add_input(
+            individual_control_layout,
+            password_field(
+                new_password,
+                6,
+                1,
+                S(
+                    "New password"
+                )
+            ),
+            {
+                new_password
+            }
+        )
+        individual_controls:add_button(
+            individual_control_layout,
+            form:new_field(
+            ),
+            S(
+                "Set password"
+            ),
+            function(
+                player,
+                formname,
+                fields,
+                form
+            )
+                local name = player:get_player_name(
+                )
+                if not form.resources.selected_index then
+                    form.resources.selected_index = 1
+                end
+                local column_mapping = mapping(
+                )
+                if not column_mapping.rows[
+                    form.resources.selected_index
+                ] then
+                    return false
+                end
+                if "individual" == column_mapping.rows[
+                    form.resources.selected_index
+                ].type then
+                    minetest.chatcommands[
+                        "setpassword"
+                    ].func(
+                        name,
+                        column_mapping.rows[
+                            form.resources.selected_index
+                        ].name .. " " .. fields[
+                            new_password
+                        ]
+                    )
+                    return true
+                end
+                return false
+            end
+        )
         local subject = form:new_field(
         )
         local group_member = form:new_field(
@@ -3358,7 +3485,9 @@ main_menu_form:add_button(
                 end
                 local help = "label[" .. layout:region_position(
                     1,
-                    1
+                    1,
+                    0,
+                    0
                 ) .. ";" .. S(
                     "Click on table cells to grant or revoke privileges"
                 ) .. "]"
@@ -3537,23 +3666,11 @@ main_menu_form:add_button(
                 ] then
                     return false
                 end
-                local subject_player = minetest.get_player_by_name(
+                edutest.student_to_teacher(
+                    player,
                     fields[
                         subject
                     ]
-                )
-                if not subject_player then
-                    minetest.log(
-                        "action",
-                        "player " .. fields[
-                            subject
-                        ] .. " disappeared"
-                    )
-                    return false
-                end
-                edutest.student_to_teacher(
-                    player,
-                    subject_player
                 )
                 return true
             end
@@ -3636,23 +3753,11 @@ main_menu_form:add_button(
                 ] then
                     return false
                 end
-                local subject_player = minetest.get_player_by_name(
+                edutest.teacher_to_student(
+                    player,
                     fields[
                         subject
                     ]
-                )
-                if not subject_player then
-                    minetest.log(
-                        "action",
-                        "player " .. fields[
-                            subject
-                        ] .. " disappeared"
-                    )
-                    return false
-                end
-                edutest.teacher_to_student(
-                    player,
-                    subject_player
                 )
                 return true
             end
