@@ -28,3 +28,4 @@ granted the "teacher" privilege. Actions have an effect to all players that have
 * areas (https://github.com/ShadowNinja/areas)
 * invincibility (https://github.com/zeuner/invincibility)
 * hud_notify (https://github.com/ClobberXD/hud_notify)
+* playerfactions (https://github.com/mt-mods/playerfactions)
