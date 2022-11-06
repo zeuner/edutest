@@ -24,7 +24,7 @@ local field_debug_dump = function(
     print(
         "EDUtest form: " .. formname
     )
-    for k,v in pairs(
+    for k, v in pairs(
         fields
     ) do
         print(
@@ -56,19 +56,25 @@ local check_field = function(
 end
 
 local string_width = function(
-    measured
+    measured,
+    granularity,
+    lang_code
 )
-    if 1 == string.len(
+    local translated = minetest.get_translated_string(
+        lang_code,
         measured
+    )
+    if 1 == string.len(
+        translated
     ) then
-        return 1
+        return granularity
     end
     local proportional = math.ceil(
         string.len(
-            measured
-        ) / 7
-    )
-    return proportional + 1
+            translated
+        ) / 7 / granularity
+    ) * granularity
+    return proportional + granularity
 end
 
 local remove_input = function(
@@ -98,7 +104,7 @@ local remove_input_prefix = function(
     for field, _ in pairs(
         form.inputs
     ) do
-        if string.sub(
+        if prefix == string.sub(
             field,
             1,
             length
@@ -155,12 +161,14 @@ local add_input = function(
     form:add_element(
         function(
             data,
-            resources
+            resources,
+            lang_code
         )
             return added(
                 layout,
                 data,
-                resources
+                resources,
+                lang_code
             )
         end
     )
@@ -232,15 +240,19 @@ local add_button = function(
     handler,
     preparation
 )
-    local width = string_width(
-        label
-    )
-    local height = 1.5
-    local size = width .. "," .. height
     form:add_element(
         function(
-            data
+            data,
+            resources,
+            lang_code
         )
+            local width = string_width(
+                label,
+                layout.width_granularity,
+                lang_code
+            )
+            local height = 1.5
+            local size = width .. "," .. height
             local position = layout:region_position(
                 width,
                 height,
@@ -258,11 +270,50 @@ local add_button = function(
     )
 end
 
+local reset_item_chooser
+
 local add_item_chooser
 
 local last_form_id = 0
 
+local wrap_player = function(
+    name
+)
+    return {
+        get_remembered_field = function(
+            form
+        )
+            return form:get_remembered_field(
+                name
+            )
+        end,
+        get_lang_code = function(
+        )
+            return minetest.get_player_information(
+                name
+            ).lang_code
+        end,
+    }
+end
+
+local wrap_lang_code = function(
+    lang_code
+)
+    return {
+        get_remembered_field = function(
+            form
+        )
+            return nil
+        end,
+        get_lang_code = function(
+        )
+            return lang_code
+        end,
+    }
+end
+
 local new_form = function(
+    base_layout
 )
     last_form_id = last_form_id + 1
     local constructed = {
@@ -272,6 +323,7 @@ local new_form = function(
         remove_input_prefix = remove_input_prefix,
         add_button = add_button,
         add_input = add_input,
+        reset_item_chooser = reset_item_chooser,
         add_item_chooser = add_item_chooser,
         form_id = last_form_id,
         last_field = 0,
@@ -306,7 +358,7 @@ local new_form = function(
         end,
         get_formspec = function(
             self,
-            name
+            calling
         )
             local formspec = ""
             for index, element in ipairs(
@@ -315,10 +367,12 @@ local new_form = function(
                 local resources = self:get_resources(
                 )
                 formspec = formspec .. element(
-                    self:get_remembered_field(
-                        name
+                    calling.get_remembered_field(
+                        self
                     ),
-                    resources
+                    resources,
+                    calling.get_lang_code(
+                    )
                 )
             end
             return formspec
@@ -333,6 +387,7 @@ local new_form = function(
         },
         resources = {
         },
+        base_layout = base_layout
     }
     return constructed
 end
@@ -385,11 +440,15 @@ local vertical_layout = function(
         column = column,
         row_initial = row,
         column_initial = column,
+        width_granularity = 1,
         reset = function(
             self
         )
             self.column = self.column_initial
             self.row = self.row_initial
+        end,
+        line_break = function(
+        )
         end,
         region_position = function(
             self,
@@ -422,6 +481,7 @@ local horizontal_layout = function(
         column = column,
         row_initial = row,
         column_initial = column,
+        width_granularity = 1,
         reset = function(
             self
         )
@@ -443,8 +503,8 @@ local horizontal_layout = function(
         )
             local new_column = self.column + width
             if max_width <= new_column then
-                self.column = 0
-                self.row = self.row + 1
+                self:line_break(
+                )
                 new_column = self.column + width
             end
             local result = (
@@ -458,10 +518,111 @@ local horizontal_layout = function(
     }
 end
 
+local horizontal_grid_layout = function(
+    column_width,
+    max_width
+)
+    last_layout_id = last_layout_id + 1
+    local row = 0.5
+    local column = 0
+    return {
+        layout_id = last_layout_id,
+        max_width = max_width,
+        column_width = column_width,
+        row = row,
+        column = column,
+        row_initial = row,
+        column_initial = column,
+        width_granularity = 1,
+        reset = function(
+            self
+        )
+            self.column = self.column_initial
+            self.row = self.row_initial
+        end,
+        line_break = function(
+            self
+        )
+            self.column = 0
+            self.row = self.row + 1
+        end,
+        region_position = function(
+            self,
+            width,
+            height,
+            offset_column,
+            offset_row
+        )
+            local new_column = self.column + width
+            local excess = self.column % self.column_width
+            if 0 < excess then
+                new_column = new_column + (self.column_width - excess)
+            end
+            if max_width <= new_column then
+                self:line_break(
+                )
+                new_column = self.column + width
+            end
+            local result = (
+                self.column + offset_column
+            ) .. "," .. (
+                self.row + offset_row
+            )
+            self.column = new_column
+            return result
+        end,
+    }
+end
+
+local horizontal_grid_adapted_layout = function(
+    original_layout,
+    new_column_width
+)
+    return {
+        original_layout = original_layout,
+        new_column_width = new_column_width,
+        width_granularity = original_layout.width_granularity,
+        reset = function (
+            self
+        )
+            self.original_layout:reset(
+            )
+        end,
+        line_break = function (
+            self
+        )
+            self.original_layout:line_break(
+            )
+        end,
+        region_position = function(
+            self,
+            width,
+            height,
+            offset_column,
+            offset_row
+        )
+            local column_width_old = self.original_layout.column_width
+            self.original_layout.column_width = self.new_column_width
+            local result = self.original_layout:region_position(
+                width,
+                height,
+                offset_column,
+                offset_row
+            )
+            self.original_layout.column_width = column_width_old
+            return result
+        end,
+    }
+end
+
 local static_layout = function(
     position
 )
     return {
+        line_break = function(
+        )
+        end,
+        width_granularity = 1,
         region_position = function(
             self,
             width,
@@ -480,8 +641,8 @@ local MP = minetest.get_modpath(
     )
 )
 
-local S, NS = dofile(
-    MP .. "/intllib.lua"
+local S = minetest.get_translator(
+    "edutest"
 )
 
 local player_previous_inventory_page = {
@@ -558,9 +719,6 @@ local main_layout = horizontal_layout(
     11
 )
 
-local null_form = new_form(
-)
-
 local set_current_form_handlers = function(
     player,
     form,
@@ -588,9 +746,11 @@ local set_current_form_handlers = function(
 end
 
 local new_main_form = function(
-    label
+    label,
+    base_layout
 )
     local constructed = new_form(
+        base_layout
     )
     constructed:add_element(
         function(
@@ -652,8 +812,14 @@ local set_current_inventory_form = function(
         player,
         form
     )
+    if form.base_layout then
+        form.base_layout:reset(
+        )
+    end
     local definition = form:get_formspec(
-        player:get_player_name(
+        wrap_player(
+            player:get_player_name(
+            )
         )
     )
     player:set_inventory_formspec(
@@ -665,18 +831,66 @@ local text_field = function(
     field,
     width,
     height,
-    label
+    label,
+    resource
 )
     return function(
-        layout
+        layout,
+        data,
+        resources
     )
-        return "field[" .. layout:region_position(
+        local value
+        if data then
+            value = data[
+                field
+            ]
+        end
+        if not value then
+            value = ""
+        end
+        if "" == value and resource and resources and resources[resource] then
+            value = resources[resource]
+        end
+        local formspec = "field[" .. layout:region_position(
             width,
             height,
             0.2,
             0.5
-        ) .. ";" .. width .. "," .. height .. ";" .. field .. ";" .. label .. ";]"
+        ) .. ";" .. width .. "," .. height .. ";" .. field .. ";" .. label
+        formspec = formspec .. ";" .. value .. "]"
+        return formspec
     end
+end
+
+local show_item_basic = function(
+    layout,
+    field,
+    shown_item
+)
+    local width = 1
+    local height = 1
+    local position = layout:region_position(
+        width,
+        height,
+        0.075,
+        0.125
+    )
+    local shown = "item_image_button[" .. position
+    shown = shown .. ";" .. width .. "," .. height .. ";"
+    shown = shown .. shown_item .. ";" .. field .. "_"
+    shown = shown .. shown_item .. ";]"
+    return shown
+end
+
+reset_item_chooser = function(
+    form,
+    field
+)
+    local resources = form:get_resources(
+    )
+    resources[
+        "items_" .. field
+    ] = nil
 end
 
 add_item_chooser = function(
@@ -685,42 +899,36 @@ add_item_chooser = function(
     field,
     count,
     items,
-    handler
+    show_item,
+    handler,
+    extra_actions
 )
+    local adapted = horizontal_grid_adapted_layout(
+        layout,
+        1
+    )
     local resources = form:get_resources(
     )
-    if not resources[
-        "first_item_" .. field
-    ] then
-        resources[
-            "first_item_" .. field
-        ] = 1
-    end
     if not resources[
         "items_" .. field
     ] then
         resources[
             "items_" .. field
         ] = items
-    end
-    if not resources[
-        "items_filtered_" .. field
-    ] then
         resources[
             "items_filtered_" .. field
         ] = items
-    end
-    if not resources[
-        "items_filter_" .. field
-    ] then
         resources[
             "items_filter_" .. field
         ] = ""
+        resources[
+            "first_item_" .. field
+        ] = 1
     end
     local item_filter = form:new_field(
     )
     form:add_input(
-        layout,
+        adapted,
         text_field(
             item_filter,
             4,
@@ -734,7 +942,7 @@ add_item_chooser = function(
         }
     )
     form:add_button(
-        layout,
+        adapted,
         form:new_field(
         ),
         S(
@@ -788,7 +996,7 @@ add_item_chooser = function(
         end
     )
     form:add_button(
-        layout,
+        adapted,
         form:new_field(
         ),
         "<",
@@ -834,25 +1042,20 @@ add_item_chooser = function(
                     shown_absolute
                 ]
                 if shown_item then
-                    local width = 1
-                    local height = 1
-                    local position = layout:region_position(
-                        width,
-                        height,
-                        0.075,
-                        0.125
+                    buttons = buttons .. show_item(
+                        adapted,
+                        field,
+                        shown_item,
+                        form,
+                        shown
                     )
-                    buttons = buttons .. "item_image_button[" .. position
-                    buttons = buttons .. ";" .. width .. "," .. height .. ";"
-                    buttons = buttons .. shown_item .. ";" .. field .. "_"
-                    buttons = buttons .. shown_item .. ";]"
                 end
             end
             return buttons
         end
     )
     form:add_button(
-        layout,
+        adapted,
         form:new_field(
         ),
         ">",
@@ -908,6 +1111,34 @@ add_item_chooser = function(
                 )
             end
         )
+        if extra_actions then
+            for _, action in pairs(
+                extra_actions
+            ) do
+                form:register_input(
+                    field .. "_" .. item .. "_" .. action,
+                    function(
+                        player,
+                        formname,
+                        fields,
+                        form
+                    )
+                        fields[
+                            field
+                        ] = item
+                        fields[
+                            field .. "_action"
+                        ] = action
+                        return handler(
+                            player,
+                            formname,
+                            fields,
+                            form
+                        )
+                    end
+                )
+            end
+        end
     end
 end
 
@@ -975,25 +1206,42 @@ end
 
 local dropdown_field = function(
     field,
-    width,
     height,
     label,
     choices
 )
     return function(
-        layout
+        layout,
+        data,
+        resources,
+        lang_code
     )
+        local width = string_width(
+            label,
+            layout.width_granularity,
+            lang_code
+        )
+        local choice_formspec = ""
+        for k, v in pairs(
+            choices
+        ) do
+            local choice_width = string_width(
+                k,
+                layout.width_granularity,
+                lang_code
+            )
+            if choice_width > width then
+                width = choice_width
+            end
+            choice_formspec = choice_formspec .. "," .. k
+        end
         local formspec = "dropdown[" .. layout:region_position(
             width,
             height,
             0.1,
             0.25
         ) .. ";" .. width .. ";" .. field .. ";" .. label
-        for k, v in pairs(
-            choices
-        ) do
-            formspec = formspec .. "," .. k
-        end
+        formspec = formspec .. choice_formspec
         return formspec .. ";1]"
     end
 end
@@ -1021,7 +1269,9 @@ local basic_student_dropdown = function(
 )
     return function(
         layout,
-        data
+        data,
+        resources,
+        lang_code
     )
         local selected_value = ""
         local selected_index = 1
@@ -1045,7 +1295,9 @@ local basic_student_dropdown = function(
         end
         local entries = entry
         local max_width = string_width(
-            entries
+            entries,
+            layout.width_granularity,
+            lang_code
         )
         edutest.for_all_students(
             function(
@@ -1053,7 +1305,9 @@ local basic_student_dropdown = function(
                 name
             )
                 local width = string_width(
-                    name
+                    name,
+                    layout.width_granularity,
+                    lang_code
                 )
                 if max_width < width then
                     max_width = width
@@ -1121,15 +1375,21 @@ local privilege_check = function(
 end
 
 local boolean_column_width = function(
-    title
+    title,
+    granularity,
+    lang_code
 )
     local max_width = string_width(
-        title
+        title,
+        granularity,
+        lang_code
     )
     local next_width = string_width(
         S(
             "yes"
-        )
+        ),
+        granularity,
+        lang_code
     )
     if next_width > max_width then
         max_width = next_width
@@ -1137,7 +1397,9 @@ local boolean_column_width = function(
     local next_width = string_width(
         S(
             "no"
-        )
+        ),
+        granularity,
+        lang_code
     )
     if next_width > max_width then
         max_width = next_width
@@ -1485,7 +1747,8 @@ local mapping_table = function(
     return function(
         layout,
         data,
-        resources
+        resources,
+        lang_code
     )
         local mapping = lazy_mapping(
         )
@@ -1495,7 +1758,9 @@ local mapping_table = function(
         local entries = ""
         local delimiter = ""
         local max_width = string_width(
-            entries
+            entries,
+            layout.width_granularity,
+            lang_code
         )
         local row_index = 2
         while mapping.rows[
@@ -1524,7 +1789,9 @@ local mapping_table = function(
                 entry = "#FFDDDD," .. all_students_entry
             end
             local width = string_width(
-                entry
+                entry,
+                layout.width_granularity,
+                lang_code
             )
             local column_index = 4
             while mapping.columns[
@@ -1651,7 +1918,9 @@ local mapping_table = function(
             ]
             column_index = column_index + 2
             full_width = full_width + boolean_column_width(
-                column.title
+                column.title,
+                layout.width_granularity,
+                lang_code
             )
         end
         local adjusted_width = full_width * 2 / 3
@@ -1695,7 +1964,9 @@ local basic_teacher_dropdown = function(
 )
     return function(
         layout,
-        data
+        data,
+        resources,
+        lang_code
     )
         local selected_value = ""
         local selected_index = 1
@@ -1715,7 +1986,9 @@ local basic_teacher_dropdown = function(
         end
         local entries = entry
         local max_width = string_width(
-            entries
+            entries,
+            layout.width_granularity,
+            lang_code
         )
         edutest.for_all_teachers(
             function(
@@ -1723,7 +1996,9 @@ local basic_teacher_dropdown = function(
                 name
             )
                 local width = string_width(
-                    name
+                    name,
+                    layout.width_granularity,
+                    lang_code
                 )
                 if max_width < width then
                     max_width = width
@@ -1751,7 +2026,9 @@ local student_dropdown = function(
 )
     return function(
         layout,
-        data
+        data,
+        resources,
+        lang_code
     )
         local selected_value = ""
         local selected_index = 1
@@ -1775,7 +2052,9 @@ local student_dropdown = function(
         end
         local entries = entry
         local max_width = string_width(
-            entries
+            entries,
+            layout.width_granularity,
+            lang_code
         )
         if edutest.for_all_groups then
             edutest.for_all_groups(
@@ -1785,7 +2064,9 @@ local student_dropdown = function(
                 )
                     local entry = group_prefix .. name
                     local width = string_width(
-                        entry
+                        entry,
+                        layout.width_granularity,
+                        lang_code
                     )
                     if max_width < width then
                         max_width = width
@@ -1817,7 +2098,9 @@ local student_dropdown = function(
                 end
                 local entry = prefix .. name
                 local width = string_width(
-                    entry
+                    entry,
+                    layout.width_granularity,
+                    lang_code
                 )
                 if max_width < width then
                     max_width = width
@@ -1848,7 +2131,9 @@ local basic_student_dropdown_with_groups = function(
 )
     return function(
         layout,
-        data
+        data,
+        resources,
+        lang_code
     )
         local selected_value = ""
         local selected_index = 1
@@ -1872,7 +2157,9 @@ local basic_student_dropdown_with_groups = function(
         end
         local entries = entry
         local max_width = string_width(
-            entries
+            entries,
+            layout.width_granularity,
+            lang_code
         )
         if edutest.for_all_groups then
             edutest.for_all_groups(
@@ -1882,7 +2169,9 @@ local basic_student_dropdown_with_groups = function(
                 )
                     local entry = group_prefix .. name
                     local width = string_width(
-                        entry
+                        entry,
+                        layout.width_granularity,
+                        lang_code
                     )
                     if max_width < width then
                         max_width = width
@@ -1905,7 +2194,9 @@ local basic_student_dropdown_with_groups = function(
                 name
             )
                 local width = string_width(
-                    name
+                    name,
+                    layout.width_granularity,
+                    lang_code
                 )
                 if max_width < width then
                     max_width = width
@@ -1936,7 +2227,9 @@ local group_dropdown = function(
 )
     return function(
         layout,
-        data
+        data,
+        resources,
+        lang_code
     )
         local selected_value = ""
         local selected_index = 1
@@ -1960,7 +2253,9 @@ local group_dropdown = function(
         end
         local entries = entry
         local max_width = string_width(
-            entry
+            entry,
+            layout.width_granularity,
+            lang_code
         )
         entry = new_group_entry
         if without_prefix(
@@ -1971,7 +2266,9 @@ local group_dropdown = function(
             selected_index = current_index
         end
         local width = string_width(
-            entry
+            entry,
+            layout.width_granularity,
+            lang_code
         )
         if max_width < width then
             max_width = width
@@ -1983,7 +2280,9 @@ local group_dropdown = function(
                 members
             )
                 local width = string_width(
-                    name
+                    name,
+                    layout.width_granularity,
+                    lang_code
                 )
                 if max_width < width then
                     max_width = width
@@ -2009,14 +2308,15 @@ local group_dropdown = function(
     end
 end
 
-local main_menu_form = new_main_form(
-    "EDUtest"
-)
+local main_menu_form
+
+local highlight_form
 
 local new_sub_form = function(
     label,
     width,
-    height
+    height,
+    base_layout
 )
     local size
     if not width then
@@ -2025,6 +2325,7 @@ local new_sub_form = function(
         size = width .. "," .. height
     end
     local constructed = new_form(
+        base_layout
     )
     constructed:add_element(
         function(
@@ -2065,351 +2366,6 @@ local new_sub_form = function(
         end
     )
     return constructed
-end
-
-local highlight_form = new_form(
-)
-
-if nil ~= edutest.set_highlight_marker_click_handler then
-    local highlight_adapting = {
-    }
-    highlight_form:add_element(
-        function(
-            data
-        )
-            return "size[7,7]"
-        end
-    )
-    highlight_form:add_element(
-        function(
-            data
-        )
-            return "label[0,0;" .. S(
-                "Adjust area"
-            ) .. "]"
-        end
-    )
-    highlight_form:add_button(
-        static_layout(
-            "0,0.5"
-        ),
-        highlight_form:new_field(
-        ),
-        S(
-            "Close"
-        ),
-        function(
-            player,
-            formname,
-            fields,
-            form
-        )
-            local name = player:get_player_name(
-            )
-            minetest.close_formspec(
-                name,
-                "highlight"
-            )
-            return true
-        end
-    )
-    highlight_form:add_button(
-        static_layout(
-            "2,1.5"
-        ),
-        highlight_form:new_field(
-        ),
-        "+",
-        function(
-            player,
-            formname,
-            fields,
-            form
-        )
-            local name = player:get_player_name(
-            )
-            edutest.adapt_highlighted_area(
-                name,
-                "y",
-                "max",
-                1
-            )
-            return true
-        end
-    )
-    highlight_form:add_button(
-        static_layout(
-            "3,1.5"
-        ),
-        highlight_form:new_field(
-        ),
-        "-",
-        function(
-            player,
-            formname,
-            fields,
-            form
-        )
-            local name = player:get_player_name(
-            )
-            edutest.adapt_highlighted_area(
-                name,
-                "y",
-                "max",
-                -1
-            )
-            return true
-        end
-    )
-    highlight_form:add_button(
-        static_layout(
-            "2,5.5"
-        ),
-        highlight_form:new_field(
-        ),
-        "+",
-        function(
-            player,
-            formname,
-            fields,
-            form
-        )
-            local name = player:get_player_name(
-            )
-            edutest.adapt_highlighted_area(
-                name,
-                "y",
-                "min",
-                -1
-            )
-            return true
-        end
-    )
-    highlight_form:add_button(
-        static_layout(
-            "3,5.5"
-        ),
-        highlight_form:new_field(
-        ),
-        "-",
-        function(
-            player,
-            formname,
-            fields,
-            form
-        )
-            local name = player:get_player_name(
-            )
-            edutest.adapt_highlighted_area(
-                name,
-                "y",
-                "min",
-                1
-            )
-            return true
-        end
-    )
-    highlight_form:add_button(
-        static_layout(
-            "0,3"
-        ),
-        highlight_form:new_field(
-        ),
-        "+",
-        function(
-            player,
-            formname,
-            fields,
-            form
-        )
-            local name = player:get_player_name(
-            )
-            edutest.adapt_highlighted_area(
-                name,
-                highlight_adapting[
-                    name
-                ].axis,
-                highlight_adapting[
-                    name
-                ].left_extreme,
-                -highlight_adapting[
-                    name
-                ].right_growing
-            )
-            return true
-        end
-    )
-    highlight_form:add_button(
-        static_layout(
-            "0,4"
-        ),
-        highlight_form:new_field(
-        ),
-        "-",
-        function(
-            player,
-            formname,
-            fields,
-            form
-        )
-            local name = player:get_player_name(
-            )
-            edutest.adapt_highlighted_area(
-                name,
-                highlight_adapting[
-                    name
-                ].axis,
-                highlight_adapting[
-                    name
-                ].left_extreme,
-                highlight_adapting[
-                    name
-                ].right_growing
-            )
-            return true
-        end
-    )
-    highlight_form:add_button(
-        static_layout(
-            "5,3"
-        ),
-        highlight_form:new_field(
-        ),
-        "+",
-        function(
-            player,
-            formname,
-            fields,
-            form
-        )
-            local name = player:get_player_name(
-            )
-            edutest.adapt_highlighted_area(
-                name,
-                highlight_adapting[
-                    name
-                ].axis,
-                highlight_adapting[
-                    name
-                ].right_extreme,
-                highlight_adapting[
-                    name
-                ].right_growing
-            )
-            return true
-        end
-    )
-    highlight_form:add_button(
-        static_layout(
-            "5,4"
-        ),
-        highlight_form:new_field(
-        ),
-        "-",
-        function(
-            player,
-            formname,
-            fields,
-            form
-        )
-            local name = player:get_player_name(
-            )
-            edutest.adapt_highlighted_area(
-                name,
-                highlight_adapting[
-                    name
-                ].axis,
-                highlight_adapting[
-                    name
-                ].right_extreme,
-                -highlight_adapting[
-                    name
-                ].right_growing
-            )
-            return true
-        end
-    )
-    edutest.set_highlight_marker_click_handler(
-        function(
-            self,
-            clicker
-        )
-            if not self.range then
-                print(
-                    "EDUtest unexpected marker"
-                )
-                self.object:remove(
-                )
-                return
-            end
-            local name = clicker:get_player_name(
-            )
-            if self.player_name ~= name then
-                if self.player_name then
-                    print(
-                        "EDUtest owner check mismatch left " .. self.player_name
-                    )
-                end
-                if name then
-                    print(
-                        "EDUtest owner check mismatch right " .. name
-                    )
-                end
-                minetest.chat_send_player(
-                    name,
-                    "EDUtest: " .. S(
-                        "not your marker"
-                    )
-                )
-                return
-            end
-            set_current_form_handlers(
-                clicker,
-                highlight_form,
-                "highlight"
-            )
-            local forward = clicker:get_look_dir(
-            )
-            local right = {
-                x = forward.z,
-                y = forward.y,
-                z = -forward.x,
-            }
-            highlight_adapting[
-                name
-            ] = {
-                axis = self.range,
-            }
-            if 0 <= right[
-                self.range
-            ] then
-                highlight_adapting[
-                    name
-                ] = {
-                    axis = self.range,
-                    right_extreme = "max",
-                    right_growing = 1,
-                    left_extreme = "min",
-                }
-            else
-                highlight_adapting[
-                    name
-                ] = {
-                    axis = self.range,
-                    right_extreme = "min",
-                    right_growing = -1,
-                    left_extreme = "max",
-                }
-            end
-            minetest.show_formspec(
-                name,
-                "highlight",
-                highlight_form:get_formspec(
-                    name
-                )
-            )
-        end
-    )
 end
 
 if nil ~= edutest.set_highlight_marker_tooltip then
@@ -2913,97 +2869,38 @@ local add_privilege_button = function(
     )
 end
 
-if nil ~= minetest.chatcommands[
-    "freeze"
-] then
-    add_enabling_button(
-        S(
-            "Freeze"
-        ),
-        S(
-            "Freeze"
-        ),
-        unary_command_application(
-            "freeze"
-        ),
-        S(
-            "Unfreeze"
-        ),
-        sequential_operation(
-            unary_command_application(
-                "unfreeze"
-            ),
-            privilege_grant(
-                "interact"
-            )
-        ),
-        edutest.tracked_command_enabled(
-            "freeze"
+local item_pack_table_data = function(
+    field
+)
+    local result = {
+        width = 7,
+        height = 4,
+        field = field
+    }
+    local rows = {
+    }
+    rows[
+        #rows + 1
+    ] = S(
+        "Name"
+    )
+    edutest.for_all_item_packs(
+        function(
+            pack_name
         )
+            rows[
+                #rows + 1
+            ] = pack_name
+        end
     )
-else
-    add_privilege_button(
-        S(
-            "Interaction"
-        ),
-        "interact"
-    )
-end
-
-if nil ~= minetest.chatcommands[
-    "basic_hand"
-] then
-    add_enabling_button(
-        S(
-            "Creative Mode"
-        ),
-        S(
-            "Enable"
-        ),
-        sequential_operation(
-            unary_command_application(
-                "creative_hand"
-            ),
-            privilege_grant(
-                "creative"
-            )
-        ),
-        S(
-            "Disable"
-        ),
-        sequential_operation(
-            unary_command_application(
-                "basic_hand"
-            ),
-            privilege_revocation(
-                "creative"
-            )
-        ),
-        privilege_check(
-            "creative"
-        )
-    )
-else
-    add_enabling_button(
-        S(
-            "Creative Mode"
-        ),
-        S(
-            "Enable"
-        ),
-        privilege_grant(
-            "creative"
-        ),
-        S(
-            "Disable"
-        ),
-        privilege_revocation(
-            "creative"
-        ),
-        privilege_check(
-            "creative"
-        )
-    )
+    local columns = {
+    }
+    columns[
+        #columns + 1
+    ] = "pack_name"
+    result.rows = rows
+    result.columns = columns
+    return result
 end
 
 local member_table_data = function(
@@ -3126,7 +3023,7 @@ local data_table = function(
             end
             formspec = formspec .. delimiter .. v
             delimiter = ","
-	    added_row = added_row + 1
+            added_row = added_row + 1
         end
         formspec = formspec .. ";" .. selected_row .. "]"
         return formspec
@@ -3143,7 +3040,8 @@ local get_group_controls = function(
     layout,
     group_member,
     group_nonmember,
-    resources
+    resources,
+    lang_code
 )
     local group_member_controls = new_conditional_elements(
         form
@@ -3265,135 +3163,53 @@ local get_group_controls = function(
         end
     )
     local formspec = group_member_controls:get_formspec(
+        wrap_lang_code(
+            lang_code
+        )
     )
     formspec = formspec .. multi_controls:get_formspec(
+        wrap_lang_code(
+            lang_code
+        )
     )
     return formspec
 end
 
-main_menu_form:add_button(
-    main_layout,
-    main_menu_form:new_field(
-    ),
-    S(
-        "Manage players"
-    ),
-    function(
-        player,
-        formname,
-        fields,
-        form,
-        field
+local initialize_forms = function(
+)
+    main_menu_form = new_main_form(
+        "EDUtest",
+        main_layout
     )
-        local subform = form.resources[
-            field
-        ].form
-        set_current_inventory_form(
-            player,
-            subform
-        )
-        return true
-    end,
-    function(
+    highlight_form = new_form(
     )
-        local form = new_sub_form(
-            "EDUtest > " .. S(
-                "Manage players"
-            ),
-            20,
-            15
-        )
-        local mapping = generic_axis_mapping_lazy(
-            tabular_interface_columns,
-            {
-                mapping_add_all,
-                mapping_add_groups,
-                mapping_add_students,
-                mapping_add_offline_students
-            }
-        )
-        local group_controls = new_conditional_elements(
-            form
-        )
-        local group_control_layout = horizontal_layout(
-            20
-        )
-        group_control_layout.row_initial = 8
-        group_control_layout.column_initial = 0.5
-        local new_group = form:new_field(
-        )
-        group_controls:add_input(
-            group_control_layout,
-            text_field(
-                new_group,
-                6,
-                1,
-                S(
-                    "Name for new group"
-                )
-            ),
-            {
-                new_group
-            }
-        )
-        group_controls:add_button(
-            group_control_layout,
-            form:new_field(
-            ),
-            S(
-                "Create group"
-            ),
+    if nil ~= edutest.set_highlight_marker_click_handler then
+        local highlight_adapting = {
+        }
+        highlight_form:add_element(
             function(
-                player,
-                formname,
-                fields
+                data
             )
-                local name = player:get_player_name(
-                )
-                local group_name
-                group_name = fields[
-                    new_group
-                ]
-                group_name = string.gsub(
-                    group_name,
-                    " ",
-                    "_"
-                )
-                minetest.chatcommands[
-                    "create_group"
-                ].func(
-                    name,
-                    group_name
-                )
-                form.resources.temp_selected_group = group_name
-                set_current_inventory_form(
-                    player,
-                    form
-                )
-                return true
+                return "size[7,7]"
             end
         )
-        local multi_controls = new_conditional_elements(
-            form
+        highlight_form:add_element(
+            function(
+                data
+            )
+                return "label[0,0;" .. S(
+                    "Adjust area"
+                ) .. "]"
+            end
         )
-        local multi_control_layout = horizontal_layout(
-            20
-        )
-        multi_control_layout.row_initial = 12
-        local individual_controls = new_conditional_elements(
-            form
-        )
-        local individual_control_layout = horizontal_layout(
-            20
-        )
-        individual_control_layout.row_initial = 7
-        local other_teleport = form:new_field(
-        )
-        multi_controls:add_button(
-            multi_control_layout,
-            other_teleport,
+        highlight_form:add_button(
+            static_layout(
+                "0,0.5"
+            ),
+            highlight_form:new_field(
+            ),
             S(
-                "Bring student"
+                "Close"
             ),
             function(
                 player,
@@ -3403,92 +3219,530 @@ main_menu_form:add_button(
             )
                 local name = player:get_player_name(
                 )
-                if not form.resources.selected_index then
-                    form.resources.selected_index = 1
-                end
-                local column_mapping = mapping(
+                minetest.close_formspec(
+                    name,
+                    "highlight"
                 )
-                if not column_mapping.rows[
-                    form.resources.selected_index
-                ] then
-                    return false
-                end
-                if "all" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "every_student"
-                    ].func(
-                        name,
-                        teleport_command .. " subject " .. name
-                    )
-                    return true
-                end
-                if "group" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "every_member"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " " .. teleport_command .. " subject " .. name
-                    )
-                    return true
-                end
-                if "individual" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        teleport_command
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " " .. name
-                    )
-                    return true
-                end
-                if "individual_teacher" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        teleport_command
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " " .. name
-                    )
-                    return true
-                end
-                if "individual_offline" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        teleport_command
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " " .. name
-                    )
-                    return true
-                end
-                return false
+                return true
             end
         )
-        if nil ~= minetest.chatcommands[
-            "return"
-        ] then
-            local other_previous_position = form:new_field(
+        highlight_form:add_button(
+            static_layout(
+                "2,1.5"
+            ),
+            highlight_form:new_field(
+            ),
+            "+",
+            function(
+                player,
+                formname,
+                fields,
+                form
+            )
+                local name = player:get_player_name(
+                )
+                edutest.adapt_highlighted_area(
+                    name,
+                    "y",
+                    "max",
+                    1
+                )
+                return true
+            end
+        )
+        highlight_form:add_button(
+            static_layout(
+                "3,1.5"
+            ),
+            highlight_form:new_field(
+            ),
+            "-",
+            function(
+                player,
+                formname,
+                fields,
+                form
+            )
+                local name = player:get_player_name(
+                )
+                edutest.adapt_highlighted_area(
+                    name,
+                    "y",
+                    "max",
+                    -1
+                )
+                return true
+            end
+        )
+        highlight_form:add_button(
+            static_layout(
+                "2,5.5"
+            ),
+            highlight_form:new_field(
+            ),
+            "+",
+            function(
+                player,
+                formname,
+                fields,
+                form
+            )
+                local name = player:get_player_name(
+                )
+                edutest.adapt_highlighted_area(
+                    name,
+                    "y",
+                    "min",
+                    -1
+                )
+                return true
+            end
+        )
+        highlight_form:add_button(
+            static_layout(
+                "3,5.5"
+            ),
+            highlight_form:new_field(
+            ),
+            "-",
+            function(
+                player,
+                formname,
+                fields,
+                form
+            )
+                local name = player:get_player_name(
+                )
+                edutest.adapt_highlighted_area(
+                    name,
+                    "y",
+                    "min",
+                    1
+                )
+                return true
+            end
+        )
+        highlight_form:add_button(
+            static_layout(
+                "0,3"
+            ),
+            highlight_form:new_field(
+            ),
+            "+",
+            function(
+                player,
+                formname,
+                fields,
+                form
+            )
+                local name = player:get_player_name(
+                )
+                edutest.adapt_highlighted_area(
+                    name,
+                    highlight_adapting[
+                        name
+                    ].axis,
+                    highlight_adapting[
+                        name
+                    ].left_extreme,
+                    -highlight_adapting[
+                        name
+                    ].right_growing
+                )
+                return true
+            end
+        )
+        highlight_form:add_button(
+            static_layout(
+                "0,4"
+            ),
+            highlight_form:new_field(
+            ),
+            "-",
+            function(
+                player,
+                formname,
+                fields,
+                form
+            )
+                local name = player:get_player_name(
+                )
+                edutest.adapt_highlighted_area(
+                    name,
+                    highlight_adapting[
+                        name
+                    ].axis,
+                    highlight_adapting[
+                        name
+                    ].left_extreme,
+                    highlight_adapting[
+                        name
+                    ].right_growing
+                )
+                return true
+            end
+        )
+        highlight_form:add_button(
+            static_layout(
+                "5,3"
+            ),
+            highlight_form:new_field(
+            ),
+            "+",
+            function(
+                player,
+                formname,
+                fields,
+                form
+            )
+                local name = player:get_player_name(
+                )
+                edutest.adapt_highlighted_area(
+                    name,
+                    highlight_adapting[
+                        name
+                    ].axis,
+                    highlight_adapting[
+                        name
+                    ].right_extreme,
+                    highlight_adapting[
+                        name
+                    ].right_growing
+                )
+                return true
+            end
+        )
+        highlight_form:add_button(
+            static_layout(
+                "5,4"
+            ),
+            highlight_form:new_field(
+            ),
+            "-",
+            function(
+                player,
+                formname,
+                fields,
+                form
+            )
+                local name = player:get_player_name(
+                )
+                edutest.adapt_highlighted_area(
+                    name,
+                    highlight_adapting[
+                        name
+                    ].axis,
+                    highlight_adapting[
+                        name
+                    ].right_extreme,
+                    -highlight_adapting[
+                        name
+                    ].right_growing
+                )
+                return true
+            end
+        )
+        edutest.set_highlight_marker_click_handler(
+            function(
+                self,
+                clicker
+            )
+                if not self.range then
+                    print(
+                        "EDUtest unexpected marker"
+                    )
+                    self.object:remove(
+                    )
+                    return
+                end
+                local name = clicker:get_player_name(
+                )
+                if self.player_name ~= name then
+                    if self.player_name then
+                        print(
+                            "EDUtest owner check mismatch left " .. self.player_name
+                        )
+                    end
+                    if name then
+                        print(
+                            "EDUtest owner check mismatch right " .. name
+                        )
+                    end
+                    minetest.chat_send_player(
+                        name,
+                        "EDUtest: " .. S(
+                            "not your marker"
+                        )
+                    )
+                    return
+                end
+                set_current_form_handlers(
+                    clicker,
+                    highlight_form,
+                    "highlight"
+                )
+                local forward = clicker:get_look_dir(
+                )
+                local right = {
+                    x = forward.z,
+                    y = forward.y,
+                    z = -forward.x,
+                }
+                highlight_adapting[
+                    name
+                ] = {
+                    axis = self.range,
+                }
+                if 0 <= right[
+                    self.range
+                ] then
+                    highlight_adapting[
+                        name
+                    ] = {
+                        axis = self.range,
+                        right_extreme = "max",
+                        right_growing = 1,
+                        left_extreme = "min",
+                    }
+                else
+                    highlight_adapting[
+                        name
+                    ] = {
+                        axis = self.range,
+                        right_extreme = "min",
+                        right_growing = -1,
+                        left_extreme = "max",
+                    }
+                end
+                minetest.show_formspec(
+                    name,
+                    "highlight",
+                    highlight_form:get_formspec(
+                        wrap_player(
+                            name
+                        )
+                    )
+                )
+            end
+        )
+    end
+    if nil ~= minetest.chatcommands[
+        "freeze"
+    ] then
+        add_enabling_button(
+            S(
+                "Freeze"
+            ),
+            S(
+                "Freeze"
+            ),
+            unary_command_application(
+                "freeze"
+            ),
+            S(
+                "Unfreeze"
+            ),
+            sequential_operation(
+                unary_command_application(
+                    "unfreeze"
+                ),
+                privilege_grant(
+                    "interact"
+                )
+            ),
+            edutest.tracked_command_enabled(
+                "freeze"
+            )
+        )
+    else
+        add_privilege_button(
+            S(
+                "Interaction"
+            ),
+            "interact"
+        )
+    end
+    if nil ~= minetest.chatcommands[
+        "basic_hand"
+    ] then
+        add_enabling_button(
+            S(
+                "Creative Mode"
+            ),
+            S(
+                "Enable"
+            ),
+            sequential_operation(
+                unary_command_application(
+                    "creative_hand"
+                ),
+                privilege_grant(
+                    "creative"
+                )
+            ),
+            S(
+                "Disable"
+            ),
+            sequential_operation(
+                unary_command_application(
+                    "basic_hand"
+                ),
+                privilege_revocation(
+                    "creative"
+                )
+            ),
+            privilege_check(
+                "creative"
+            )
+        )
+    else
+        add_enabling_button(
+            S(
+                "Creative Mode"
+            ),
+            S(
+                "Enable"
+            ),
+            privilege_grant(
+                "creative"
+            ),
+            S(
+                "Disable"
+            ),
+            privilege_revocation(
+                "creative"
+            ),
+            privilege_check(
+                "creative"
+            )
+        )
+    end
+    main_menu_form:add_button(
+        main_layout,
+        main_menu_form:new_field(
+        ),
+        S(
+            "Manage players"
+        ),
+        function(
+            player,
+            formname,
+            fields,
+            form,
+            field
+        )
+            local subform = form.resources[
+                field
+            ].form
+            set_current_inventory_form(
+                player,
+                subform
+            )
+            return true
+        end,
+        function(
+        )
+            local form = new_sub_form(
+                "EDUtest > " .. S(
+                    "Manage players"
+                ),
+                20,
+                15
+            )
+            local mapping = generic_axis_mapping_lazy(
+                tabular_interface_columns,
+                {
+                    mapping_add_all,
+                    mapping_add_groups,
+                    mapping_add_students,
+                    mapping_add_offline_students
+                }
+            )
+            local group_controls = new_conditional_elements(
+                form
+            )
+            local group_control_layout = horizontal_grid_layout(
+                4,
+                20
+            )
+            group_control_layout.row_initial = 8
+            group_control_layout.column_initial = 0.5
+            local new_group = form:new_field(
+            )
+            group_controls:add_input(
+                group_control_layout,
+                text_field(
+                    new_group,
+                    6,
+                    1,
+                    S(
+                        "Name for new group"
+                    )
+                ),
+                {
+                    new_group
+                }
+            )
+            group_controls:add_button(
+                group_control_layout,
+                form:new_field(
+                ),
+                S(
+                    "Create group"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields
+                )
+                    local name = player:get_player_name(
+                    )
+                    local group_name
+                    group_name = fields[
+                        new_group
+                    ]
+                    group_name = string.gsub(
+                        group_name,
+                        " ",
+                        "_"
+                    )
+                    minetest.chatcommands[
+                        "create_group"
+                    ].func(
+                        name,
+                        group_name
+                    )
+                    form.resources.temp_selected_group = group_name
+                    set_current_inventory_form(
+                        player,
+                        form
+                    )
+                    return true
+                end
+            )
+            local multi_controls = new_conditional_elements(
+                form
+            )
+            local multi_control_layout = horizontal_grid_layout(
+                4,
+                20
+            )
+            multi_control_layout.row_initial = 10
+            local individual_controls = new_conditional_elements(
+                form
+            )
+            local individual_control_layout = horizontal_grid_layout(
+                4,
+                20
+            )
+            individual_control_layout.row_initial = 7
+            local other_teleport = form:new_field(
             )
             multi_controls:add_button(
                 multi_control_layout,
-                other_previous_position,
+                other_teleport,
                 S(
-                    "Previous position"
+                    "Bring student"
                 ),
                 function(
                     player,
@@ -3508,25 +3762,782 @@ main_menu_form:add_button(
                     ] then
                         return false
                     end
-                    apply_to_row(
-                        name,
-                        unary_command_application(
-                            "return"
-                        ),
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ]
-                    )
-                    return true
+                    if "all" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "every_student"
+                        ].func(
+                            name,
+                            teleport_command .. " subject " .. name
+                        )
+                        return true
+                    end
+                    if "group" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "every_member"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. teleport_command .. " subject " .. name
+                        )
+                        return true
+                    end
+                    if "individual" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            teleport_command
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. name
+                        )
+                        return true
+                    end
+                    if "individual_teacher" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            teleport_command
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. name
+                        )
+                        return true
+                    end
+                    if "individual_offline" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            teleport_command
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. name
+                        )
+                        return true
+                    end
+                    return false
                 end
             )
-            local self_previous_position = form:new_field(
+            if nil ~= minetest.chatcommands[
+                "return"
+            ] then
+                local other_previous_position = form:new_field(
+                )
+                multi_controls:add_button(
+                    multi_control_layout,
+                    other_previous_position,
+                    S(
+                        "Previous position"
+                    ),
+                    function(
+                        player,
+                        formname,
+                        fields,
+                        form
+                    )
+                        local name = player:get_player_name(
+                        )
+                        if not form.resources.selected_index then
+                            form.resources.selected_index = 1
+                        end
+                        local column_mapping = mapping(
+                        )
+                        if not column_mapping.rows[
+                            form.resources.selected_index
+                        ] then
+                            return false
+                        end
+                        apply_to_row(
+                            name,
+                            unary_command_application(
+                                "return"
+                            ),
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ]
+                        )
+                        return true
+                    end
+                )
+                local self_previous_position = form:new_field(
+                )
+                individual_controls:add_button(
+                    individual_control_layout,
+                    self_previous_position,
+                    S(
+                        "Previous position"
+                    ),
+                    function(
+                        player,
+                        formname,
+                        fields,
+                        form
+                    )
+                        local name = player:get_player_name(
+                        )
+                        if not form.resources.selected_index then
+                            form.resources.selected_index = 1
+                        end
+                        local column_mapping = mapping(
+                        )
+                        if not column_mapping.rows[
+                            form.resources.selected_index
+                        ] then
+                            return false
+                        end
+                        if "individual" == column_mapping.rows[
+                            form.resources.selected_index
+                        ].type then
+                            minetest.chatcommands[
+                                "return"
+                            ].func(
+                                name,
+                                ""
+                            )
+                            return true
+                        end
+                        if "individual_offline" == column_mapping.rows[
+                            form.resources.selected_index
+                        ].type then
+                            minetest.chatcommands[
+                                "return"
+                            ].func(
+                                name,
+                                ""
+                            )
+                            return true
+                        end
+                        if "individual_teacher" == column_mapping.rows[
+                            form.resources.selected_index
+                        ].type then
+                            minetest.chatcommands[
+                                "return"
+                            ].func(
+                                name,
+                                ""
+                            )
+                            return true
+                        end
+                        return false
+                    end
+                )
+            end
+            local new_password = form:new_field(
+            )
+            local modified_privilege = form:new_field(
+            )
+            multi_controls:add_input(
+                multi_control_layout,
+                dropdown_field(
+                    modified_privilege,
+                    1,
+                    S(
+                        "Choose privilege"
+                    ),
+                    dropdown_privileges
+                ),
+                {
+                    modified_privilege
+                }
+            )
+            multi_controls:add_button(
+                multi_control_layout,
+                form:new_field(
+                ),
+                S(
+                    "Grant"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields,
+                    form
+                )
+                    local name = player:get_player_name(
+                    )
+                    if not form.resources.selected_index then
+                        form.resources.selected_index = 1
+                    end
+                    local column_mapping = mapping(
+                    )
+                    if not column_mapping.rows[
+                        form.resources.selected_index
+                    ] then
+                        return false
+                    end
+                    local chosen_privilege = fields[
+                        modified_privilege
+                    ]
+                    if not dropdown_privileges[
+                        chosen_privilege
+                    ] then
+                        minetest.chat_send_player(
+                            name,
+                            "EDUtest: " .. S(
+                                "You need to choose a privilege first"
+                            )
+                        )
+                        return false
+                    end
+                    if "all" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "every_student"
+                        ].func(
+                            name,
+                            "grant subject " .. chosen_privilege
+                        )
+                        return true
+                    end
+                    if "group" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "every_member"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " grant subject " .. chosen_privilege
+                        )
+                        return true
+                    end
+                    if "individual" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "grant"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. chosen_privilege
+                        )
+                        return true
+                    end
+                    if "individual_teacher" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "grant"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. chosen_privilege
+                        )
+                        return true
+                    end
+                    if "individual_offline" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "grant"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. chosen_privilege
+                        )
+                        return true
+                    end
+                    return false
+                end
+            )
+            multi_controls:add_button(
+                multi_control_layout,
+                form:new_field(
+                ),
+                S(
+                    "Revoke"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields,
+                    form
+                )
+                    local name = player:get_player_name(
+                    )
+                    if not form.resources.selected_index then
+                        form.resources.selected_index = 1
+                    end
+                    local column_mapping = mapping(
+                    )
+                    if not column_mapping.rows[
+                        form.resources.selected_index
+                    ] then
+                        return false
+                    end
+                    local chosen_privilege = fields[
+                        modified_privilege
+                    ]
+                    if not dropdown_privileges[
+                        chosen_privilege
+                    ] then
+                        minetest.chat_send_player(
+                            name,
+                            "EDUtest: " .. S(
+                                "You need to choose a privilege first"
+                            )
+                        )
+                        return false
+                    end
+                    if "all" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "every_student"
+                        ].func(
+                            name,
+                            "revoke subject " .. chosen_privilege
+                        )
+                        return true
+                    end
+                    if "group" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "every_member"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " revoke subject " .. chosen_privilege
+                        )
+                        return true
+                    end
+                    if "individual" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "revoke"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. chosen_privilege
+                        )
+                        return true
+                    end
+                    if "individual_teacher" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "revoke"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. chosen_privilege
+                        )
+                        return true
+                    end
+                    if "individual_offline" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "revoke"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. chosen_privilege
+                        )
+                        return true
+                    end
+                    return false
+                end
+            )
+            local give_count = form:new_field(
+            )
+            multi_controls:add_input(
+                multi_control_layout,
+                text_field(
+                    give_count,
+                    4,
+                    1,
+                    S(
+                        "Amount to give"
+                    )
+                ),
+                {
+                    give_count
+                }
+            )
+            local choosable_items = {
+            }
+            for item_name, item_data in pairs(
+                minetest.registered_items
+            ) do
+                if "" ~= item_name
+                and not item_data.not_in_creative_inventory then
+                    table.insert(
+                        choosable_items,
+                        item_name
+                    )
+                end
+            end
+            local give_item_chooser = form:new_field(
+            )
+            multi_controls:add_item_chooser(
+                multi_control_layout,
+                give_item_chooser,
+                5,
+                choosable_items,
+                show_item_basic,
+                function(
+                    player,
+                    formname,
+                    fields,
+                    form
+                )
+                    local name = player:get_player_name(
+                    )
+                    if not form.resources.selected_index then
+                        form.resources.selected_index = 1
+                    end
+                    local column_mapping = mapping(
+                    )
+                    if not column_mapping.rows[
+                        form.resources.selected_index
+                    ] then
+                        return false
+                    end
+                    local count_raw = fields[
+                        give_count
+                    ]
+                    local count = ""
+                    if "" ~= count_raw then
+                        local count_matched = count_raw:match "^%d+$"
+                        if not count_matched then
+                            minetest.chat_send_player(
+                                name,
+                                "EDUtest: " .. S(
+                                    "Invalid item count"
+                                )
+                            )
+                            return false
+                        end
+                        count = " " .. count_matched
+                    end
+                    if "all" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "every_student"
+                        ].func(
+                            name,
+                            "give subject " .. fields[
+                                give_item_chooser
+                            ] .. count
+                        )
+                        return true
+                    end
+                    if "group" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "every_member"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " give subject " .. fields[
+                                give_item_chooser
+                            ] .. count
+                        )
+                        return true
+                    end
+                    if "individual" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "give"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. fields[
+                                give_item_chooser
+                            ] .. count
+                        )
+                        return true
+                    end
+                    if "individual_teacher" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "give"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. fields[
+                                give_item_chooser
+                            ] .. count
+                        )
+                        return true
+                    end
+                    if "individual_offline" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "give"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. fields[
+                                give_item_chooser
+                            ] .. count
+                        )
+                        return true
+                    end
+                    return false
+                end
+            )
+            local given_item_pack = form:new_field(
+            )
+            local dropdown_item_packs = {
+            }
+            edutest.for_all_item_packs(
+                function(
+                    pack_name
+                )   
+                    dropdown_item_packs[
+                        pack_name
+                    ] = true
+                end
+            )
+            multi_controls:add_input(
+                multi_control_layout,
+                dropdown_field(
+                    given_item_pack,
+                    1,
+                    S(
+                        "Choose item pack"
+                    ),
+                    dropdown_item_packs
+                ),
+                {
+                    given_item_pack
+                }
+            )
+            multi_controls:add_button(
+                multi_control_layout,
+                form:new_field(
+                ),
+                S(
+                    "Give"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields,
+                    form
+                )
+                    local name = player:get_player_name(
+                    )
+                    if not form.resources.selected_index then
+                        form.resources.selected_index = 1
+                    end
+                    local column_mapping = mapping(
+                    )
+                    if not column_mapping.rows[
+                        form.resources.selected_index
+                    ] then
+                        return false
+                    end
+                    local chosen_pack = fields[
+                        given_item_pack
+                    ]
+                    if not dropdown_item_packs[
+                        chosen_pack
+                    ] then
+                        minetest.chat_send_player(
+                            name,
+                            "EDUtest: " .. S(
+                                "You need to choose an item pack first"
+                            )
+                        )
+                        return false
+                    end
+                    if "all" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "every_student"
+                        ].func(
+                            name,
+                            "item_pack_give subject " .. chosen_pack
+                        )
+                        return true
+                    end
+                    if "group" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "every_member"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " item_pack_give subject " .. chosen_pack
+                        )
+                        return true
+                    end
+                    if "individual" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "item_pack_give"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. chosen_pack
+                        )
+                        return true
+                    end
+                    if "individual_teacher" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "item_pack_give"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. chosen_pack
+                        )
+                        return true
+                    end
+                    if "individual_offline" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "item_pack_give"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. chosen_pack
+                        )
+                        return true
+                    end
+                    return false
+                end
+            )
+            multi_controls:add_button(
+                multi_control_layout,
+                form:new_field(
+                ),
+                S(
+                    "Clear inventory"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields,
+                    form
+                )
+                    local name = player:get_player_name(
+                    )
+                    if not form.resources.selected_index then
+                        form.resources.selected_index = 1
+                    end
+                    local column_mapping = mapping(
+                    )
+                    if not column_mapping.rows[
+                        form.resources.selected_index
+                    ] then
+                        return false
+                    end
+                    if "all" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "every_student"
+                        ].func(
+                            name,
+                            "clearinv subject"
+                        )
+                        return true
+                    end
+                    if "group" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "every_member"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " clearinv subject"
+                        )
+                        return true
+                    end
+                    if "individual" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "clearinv"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name
+                        )
+                        return true
+                    end
+                    if "individual_teacher" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "clearinv"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name
+                        )
+                        return true
+                    end
+                    if "individual_offline" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "clearinv"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name
+                        )
+                        return true
+                    end
+                    return false
+                end
+            )
+            local self_teleport = form:new_field(
             )
             individual_controls:add_button(
                 individual_control_layout,
-                self_previous_position,
+                self_teleport,
                 S(
-                    "Previous position"
+                    "Teleport to student"
                 ),
                 function(
                     player,
@@ -3550,21 +4561,12 @@ main_menu_form:add_button(
                         form.resources.selected_index
                     ].type then
                         minetest.chatcommands[
-                            "return"
+                            teleport_command
                         ].func(
                             name,
-                            ""
-                        )
-                        return true
-                    end
-                    if "individual_offline" == column_mapping.rows[
-                        form.resources.selected_index
-                    ].type then
-                        minetest.chatcommands[
-                            "return"
-                        ].func(
-                            name,
-                            ""
+                            name .. " " .. column_mapping.rows[
+                                form.resources.selected_index
+                            ].name
                         )
                         return true
                     end
@@ -3572,739 +4574,60 @@ main_menu_form:add_button(
                         form.resources.selected_index
                     ].type then
                         minetest.chatcommands[
-                            "return"
+                            teleport_command
                         ].func(
                             name,
-                            ""
+                            name .. " " .. column_mapping.rows[
+                                form.resources.selected_index
+                            ].name
+                        )
+                        return true
+                    end
+                    if "individual_offline" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            teleport_command
+                        ].func(
+                            name,
+                            name .. " " .. column_mapping.rows[
+                                form.resources.selected_index
+                            ].name
                         )
                         return true
                     end
                     return false
                 end
             )
-        end
-        local new_password = form:new_field(
-        )
-        local modified_privilege = form:new_field(
-        )
-        multi_controls:add_input(
-            multi_control_layout,
-            dropdown_field(
-                modified_privilege,
-                string_width(
+            individual_controls:add_element(
+                function (
+                )
+                    individual_control_layout:line_break(
+                    )
+                    return ""
+                end
+            )
+            individual_controls:add_input(
+                individual_control_layout,
+                password_field(
+                    new_password,
+                    6,
+                    1,
                     S(
-                        "Choose privilege"
+                        "New password"
                     )
                 ),
-                1,
-                S(
-                    "Choose privilege"
+                {
+                    new_password
+                }
+            )
+            individual_controls:add_button(
+                individual_control_layout,
+                form:new_field(
                 ),
-                dropdown_privileges
-            ),
-            {
-                modified_privilege
-            }
-        )
-        multi_controls:add_button(
-            multi_control_layout,
-            form:new_field(
-            ),
-            S(
-                "Grant"
-            ),
-            function(
-                player,
-                formname,
-                fields,
-                form
-            )
-                local name = player:get_player_name(
-                )
-                if not form.resources.selected_index then
-                    form.resources.selected_index = 1
-                end
-                local column_mapping = mapping(
-                )
-                if not column_mapping.rows[
-                    form.resources.selected_index
-                ] then
-                    return false
-                end
-                local chosen_privilege = fields[
-                    modified_privilege
-                ]
-                if not dropdown_privileges[
-                    chosen_privilege
-                ] then
-                    minetest.chat_send_player(
-                        name,
-                        "EDUtest: " .. S(
-                            "You need to choose a privilege first"
-                        )
-                    )
-                    return false
-                end
-                if "all" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "every_student"
-                    ].func(
-                        name,
-                        "grant subject " .. chosen_privilege
-                    )
-                    return true
-                end
-                if "group" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "every_member"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " grant subject " .. chosen_privilege
-                    )
-                    return true
-                end
-                if "individual" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "grant"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " " .. chosen_privilege
-                    )
-                    return true
-                end
-                if "individual_teacher" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "grant"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " " .. chosen_privilege
-                    )
-                    return true
-                end
-                if "individual_offline" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "grant"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " " .. chosen_privilege
-                    )
-                    return true
-                end
-                return false
-            end
-        )
-        multi_controls:add_button(
-            multi_control_layout,
-            form:new_field(
-            ),
-            S(
-                "Revoke"
-            ),
-            function(
-                player,
-                formname,
-                fields,
-                form
-            )
-                local name = player:get_player_name(
-                )
-                if not form.resources.selected_index then
-                    form.resources.selected_index = 1
-                end
-                local column_mapping = mapping(
-                )
-                if not column_mapping.rows[
-                    form.resources.selected_index
-                ] then
-                    return false
-                end
-                local chosen_privilege = fields[
-                    modified_privilege
-                ]
-                if not dropdown_privileges[
-                    chosen_privilege
-                ] then
-                    minetest.chat_send_player(
-                        name,
-                        "EDUtest: " .. S(
-                            "You need to choose a privilege first"
-                        )
-                    )
-                    return false
-                end
-                if "all" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "every_student"
-                    ].func(
-                        name,
-                        "revoke subject " .. chosen_privilege
-                    )
-                    return true
-                end
-                if "group" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "every_member"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " revoke subject " .. chosen_privilege
-                    )
-                    return true
-                end
-                if "individual" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "revoke"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " " .. chosen_privilege
-                    )
-                    return true
-                end
-                if "individual_teacher" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "revoke"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " " .. chosen_privilege
-                    )
-                    return true
-                end
-                if "individual_offline" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "revoke"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " " .. chosen_privilege
-                    )
-                    return true
-                end
-                return false
-            end
-        )
-        local give_count = form:new_field(
-        )
-        multi_controls:add_input(
-            multi_control_layout,
-            text_field(
-                give_count,
-                4,
-                1,
                 S(
-                    "Amount to give"
-                )
-            ),
-            {
-                give_count
-            }
-        )
-        local choosable_items = {
-        }
-        for item_name, item_data in pairs(
-            minetest.registered_items
-        ) do
-            if "" ~= item_name
-            and not item_data.not_in_creative_inventory then
-                table.insert(
-                    choosable_items,
-                    item_name
-                )
-            end
-        end
-        local give_item_chooser = form:new_field(
-        )
-        multi_controls:add_item_chooser(
-            multi_control_layout,
-            give_item_chooser,
-            5,
-            choosable_items,
-            function(
-                player,
-                formname,
-                fields,
-                form
-            )
-                local name = player:get_player_name(
-                )
-                if not form.resources.selected_index then
-                    form.resources.selected_index = 1
-                end
-                local column_mapping = mapping(
-                )
-                if not column_mapping.rows[
-                    form.resources.selected_index
-                ] then
-                    return false
-                end
-                local count_raw = fields[
-                    give_count
-                ]
-                local count = ""
-                if "" ~= count_raw then
-                    local count_matched = count_raw:match "^%d+$"
-                    if not count_matched then
-                        minetest.chat_send_player(
-                            name,
-                            "EDUtest: " .. S(
-                                "Invalid item count"
-                            )
-                        )
-                        return false
-                    end
-                    count = " " .. count_matched
-                end
-                if "all" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "every_student"
-                    ].func(
-                        name,
-                        "give subject " .. fields[
-                            give_item_chooser
-                        ] .. count
-                    )
-                    return true
-                end
-                if "group" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "every_member"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " give subject " .. fields[
-                            give_item_chooser
-                        ] .. count
-                    )
-                    return true
-                end
-                if "individual" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "give"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " " .. fields[
-                            give_item_chooser
-                        ] .. count
-                    )
-                    return true
-                end
-                if "individual_teacher" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "give"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " " .. fields[
-                            give_item_chooser
-                        ] .. count
-                    )
-                    return true
-                end
-                if "individual_offline" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "give"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " " .. fields[
-                            give_item_chooser
-                        ] .. count
-                    )
-                    return true
-                end
-                return false
-            end
-        )
-        local self_teleport = form:new_field(
-        )
-        individual_controls:add_button(
-            individual_control_layout,
-            self_teleport,
-            S(
-                "Teleport to student"
-            ),
-            function(
-                player,
-                formname,
-                fields,
-                form
-            )
-                local name = player:get_player_name(
-                )
-                if not form.resources.selected_index then
-                    form.resources.selected_index = 1
-                end
-                local column_mapping = mapping(
-                )
-                if not column_mapping.rows[
-                    form.resources.selected_index
-                ] then
-                    return false
-                end
-                if "individual" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        teleport_command
-                    ].func(
-                        name,
-                        name .. " " .. column_mapping.rows[
-                            form.resources.selected_index
-                        ].name
-                    )
-                    return true
-                end
-                if "individual_teacher" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        teleport_command
-                    ].func(
-                        name,
-                        name .. " " .. column_mapping.rows[
-                            form.resources.selected_index
-                        ].name
-                    )
-                    return true
-                end
-                if "individual_offline" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        teleport_command
-                    ].func(
-                        name,
-                        name .. " " .. column_mapping.rows[
-                            form.resources.selected_index
-                        ].name
-                    )
-                    return true
-                end
-                return false
-            end
-        )
-        individual_controls:add_input(
-            individual_control_layout,
-            password_field(
-                new_password,
-                6,
-                1,
-                S(
-                    "New password"
-                )
-            ),
-            {
-                new_password
-            }
-        )
-        individual_controls:add_button(
-            individual_control_layout,
-            form:new_field(
-            ),
-            S(
-                "Set password"
-            ),
-            function(
-                player,
-                formname,
-                fields,
-                form
-            )
-                local name = player:get_player_name(
-                )
-                if not form.resources.selected_index then
-                    form.resources.selected_index = 1
-                end
-                local column_mapping = mapping(
-                )
-                if not column_mapping.rows[
-                    form.resources.selected_index
-                ] then
-                    return false
-                end
-                if "individual" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type
-                or "individual_teacher" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type
-                or "individual_offline" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "setpassword"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " " .. fields[
-                            new_password
-                        ]
-                    )
-                    return true
-                end
-                return false
-            end
-        )
-        local kick_reason = form:new_field(
-        )
-        individual_controls:add_input(
-            individual_control_layout,
-            text_field(
-                kick_reason,
-                6,
-                1,
-                S(
-                    "Kick reason"
-                )
-            ),
-            {
-                kick_reason
-            }
-        )
-        individual_controls:add_button(
-            individual_control_layout,
-            form:new_field(
-            ),
-            S(
-                "Kick"
-            ),
-            function(
-                player,
-                formname,
-                fields,
-                form
-            )
-                local name = player:get_player_name(
-                )
-                if not form.resources.selected_index then
-                    form.resources.selected_index = 1
-                end
-                local column_mapping = mapping(
-                )
-                if not column_mapping.rows[
-                    form.resources.selected_index
-                ] then
-                    return false
-                end
-                if "individual" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "kick"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name .. " " .. fields[
-                            kick_reason
-                        ]
-                    )
-                    return true
-                end
-                if "individual_teacher" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chat_send_player(
-                        name,
-                        "EDUtest: " .. S(
-                            "Cannot kick teachers"
-                        )
-                    )
-                    return true
-                end
-                if "individual_offline" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chat_send_player(
-                        name,
-                        "EDUtest: " .. S(
-                            "Cannot kick offline players"
-                        )
-                    )
-                    return true
-                end
-                return false
-            end
-        )
-        individual_controls:add_button(
-            individual_control_layout,
-            form:new_field(
-            ),
-            S(
-                "Ban"
-            ),
-            function(
-                player,
-                formname,
-                fields,
-                form
-            )
-                local name = player:get_player_name(
-                )
-                if not form.resources.selected_index then
-                    form.resources.selected_index = 1
-                end
-                local column_mapping = mapping(
-                )
-                if not column_mapping.rows[
-                    form.resources.selected_index
-                ] then
-                    return false
-                end
-                if "individual" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "ban"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name
-                    )
-                    return true
-                end
-                if "individual_teacher" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chat_send_player(
-                        name,
-                        "EDUtest: " .. S(
-                            "Cannot ban teachers"
-                        )
-                    )
-                    return true
-                end
-                if "individual_offline" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chat_send_player(
-                        name,
-                        "EDUtest: " .. S(
-                            "Cannot ban offline players"
-                        )
-                    )
-                    return true
-                end
-                return false
-            end
-        )
-        individual_controls:add_button(
-            individual_control_layout,
-            form:new_field(
-            ),
-            S(
-                "Unban"
-            ),
-            function(
-                player,
-                formname,
-                fields,
-                form
-            )
-                local name = player:get_player_name(
-                )
-                if not form.resources.selected_index then
-                    form.resources.selected_index = 1
-                end
-                local column_mapping = mapping(
-                )
-                if not column_mapping.rows[
-                    form.resources.selected_index
-                ] then
-                    return false
-                end
-                if "individual" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type
-                or "individual_teacher" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type
-                or "individual_offline" == column_mapping.rows[
-                    form.resources.selected_index
-                ].type then
-                    minetest.chatcommands[
-                        "unban"
-                    ].func(
-                        name,
-                        column_mapping.rows[
-                            form.resources.selected_index
-                        ].name
-                    )
-                    return true
-                end
-                return false
-            end
-        )
-        local subject = form:new_field(
-        )
-        local group_member = form:new_field(
-        )
-        local group_nonmember = form:new_field(
-        )
-        local add_to_group = form:new_field(
-        )
-        local remove_from_group = form:new_field(
-        )
-        form:add_input(
-            static_layout(
-                "0,2"
-            ),
-            mapping_table(
-                subject,
-                mapping
-            ),
-            {
-                subject,
+                    "Set password"
+                ),
                 function(
                     player,
                     formname,
@@ -4313,705 +4636,1084 @@ main_menu_form:add_button(
                 )
                     local name = player:get_player_name(
                     )
-                    if false == check_field(
-                        name,
-                        formname,
-                        fields,
-                        subject
-                    ) then
-                        return false
+                    if not form.resources.selected_index then
+                        form.resources.selected_index = 1
                     end
-                    local exploded = minetest.explode_table_event(
-                        fields[
-                            subject
-                        ]
-                    )
                     local column_mapping = mapping(
                     )
-                    form.resources.selected_index = exploded.row
-                    if "CHG" ~= exploded.type then
+                    if not column_mapping.rows[
+                        form.resources.selected_index
+                    ] then
+                        return false
+                    end
+                    if "individual" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type
+                    or "individual_teacher" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type
+                    or "individual_offline" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "setpassword"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. fields[
+                                new_password
+                            ]
+                        )
+                        return true
+                    end
+                    return false
+                end
+            )
+            local kick_reason = form:new_field(
+            )
+            individual_controls:add_input(
+                individual_control_layout,
+                text_field(
+                    kick_reason,
+                    6,
+                    1,
+                    S(
+                        "Kick reason"
+                    )
+                ),
+                {
+                    kick_reason
+                }
+            )
+            individual_controls:add_button(
+                individual_control_layout,
+                form:new_field(
+                ),
+                S(
+                    "Kick"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields,
+                    form
+                )
+                    local name = player:get_player_name(
+                    )
+                    if not form.resources.selected_index then
+                        form.resources.selected_index = 1
+                    end
+                    local column_mapping = mapping(
+                    )
+                    if not column_mapping.rows[
+                        form.resources.selected_index
+                    ] then
+                        return false
+                    end
+                    if "individual" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "kick"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name .. " " .. fields[
+                                kick_reason
+                            ]
+                        )
+                        return true
+                    end
+                    if "individual_teacher" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chat_send_player(
+                            name,
+                            "EDUtest: " .. S(
+                                "Cannot kick teachers"
+                            )
+                        )
+                        return true
+                    end
+                    if "individual_offline" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chat_send_player(
+                            name,
+                            "EDUtest: " .. S(
+                                "Cannot kick offline players"
+                            )
+                        )
+                        return true
+                    end
+                    return false
+                end
+            )
+            individual_controls:add_button(
+                individual_control_layout,
+                form:new_field(
+                ),
+                S(
+                    "Ban"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields,
+                    form
+                )
+                    local name = player:get_player_name(
+                    )
+                    if not form.resources.selected_index then
+                        form.resources.selected_index = 1
+                    end
+                    local column_mapping = mapping(
+                    )
+                    if not column_mapping.rows[
+                        form.resources.selected_index
+                    ] then
+                        return false
+                    end
+                    if "individual" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "ban"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name
+                        )
+                        return true
+                    end
+                    if "individual_teacher" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chat_send_player(
+                            name,
+                            "EDUtest: " .. S(
+                                "Cannot ban teachers"
+                            )
+                        )
+                        return true
+                    end
+                    if "individual_offline" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chat_send_player(
+                            name,
+                            "EDUtest: " .. S(
+                                "Cannot ban offline players"
+                            )
+                        )
+                        return true
+                    end
+                    return false
+                end
+            )
+            individual_controls:add_button(
+                individual_control_layout,
+                form:new_field(
+                ),
+                S(
+                    "Unban"
+                ),
+                function(
+                    player,
+                    formname,
+                    fields,
+                    form
+                )
+                    local name = player:get_player_name(
+                    )
+                    if not form.resources.selected_index then
+                        form.resources.selected_index = 1
+                    end
+                    local column_mapping = mapping(
+                    )
+                    if not column_mapping.rows[
+                        form.resources.selected_index
+                    ] then
+                        return false
+                    end
+                    if "individual" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type
+                    or "individual_teacher" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type
+                    or "individual_offline" == column_mapping.rows[
+                        form.resources.selected_index
+                    ].type then
+                        minetest.chatcommands[
+                            "unban"
+                        ].func(
+                            name,
+                            column_mapping.rows[
+                                form.resources.selected_index
+                            ].name
+                        )
+                        return true
+                    end
+                    return false
+                end
+            )
+            local subject = form:new_field(
+            )
+            local group_member = form:new_field(
+            )
+            local group_nonmember = form:new_field(
+            )
+            local add_to_group = form:new_field(
+            )
+            local remove_from_group = form:new_field(
+            )
+            form:add_input(
+                static_layout(
+                    "0,2"
+                ),
+                mapping_table(
+                    subject,
+                    mapping
+                ),
+                {
+                    subject,
+                    function(
+                        player,
+                        formname,
+                        fields,
+                        form
+                    )
+                        local name = player:get_player_name(
+                        )
+                        if false == check_field(
+                            name,
+                            formname,
+                            fields,
+                            subject
+                        ) then
+                            return false
+                        end
+                        local exploded = minetest.explode_table_event(
+                            fields[
+                                subject
+                            ]
+                        )
+                        local column_mapping = mapping(
+                        )
+                        form.resources.selected_index = exploded.row
+                        if "CHG" ~= exploded.type then
+                            set_current_inventory_form(
+                                player,
+                                form
+                            )
+                            return true
+                        end
+                        if column_mapping.rows[
+                            exploded.row
+                        ]
+                        and column_mapping.columns[
+                            exploded.column
+                        ] then
+                            local subject_name = column_mapping.rows[
+                                exploded.row
+                            ].name
+                            local status
+                            if "individual" == column_mapping.rows[
+                                exploded.row
+                            ].type then
+                                if column_mapping.columns[
+                                    exploded.column
+                                ].check(
+                                    subject_name
+                                ) then
+                                    status = "on"
+                                    column_mapping.columns[
+                                        exploded.column
+                                    ].disabling:to_individual(
+                                        name,
+                                        subject_name
+                                    )
+                                else
+                                    status = "off"
+                                    column_mapping.columns[
+                                        exploded.column
+                                    ].enabling:to_individual(
+                                        name,
+                                        subject_name
+                                    )
+                                end
+                            elseif "individual_teacher" == column_mapping.rows[
+                                exploded.row
+                            ].type then
+                                if column_mapping.columns[
+                                    exploded.column
+                                ].check(
+                                    subject_name
+                                ) then
+                                    status = "on"
+                                    column_mapping.columns[
+                                        exploded.column
+                                    ].disabling:to_individual(
+                                        name,
+                                        subject_name
+                                    )
+                                else
+                                    status = "off"
+                                    column_mapping.columns[
+                                        exploded.column
+                                    ].enabling:to_individual(
+                                        name,
+                                        subject_name
+                                    )
+                                end
+                            elseif "individual_offline" == column_mapping.rows[
+                                exploded.row
+                            ].type then
+                                if column_mapping.columns[
+                                    exploded.column
+                                ].check(
+                                    subject_name
+                                ) then
+                                    status = "on"
+                                    column_mapping.columns[
+                                        exploded.column
+                                    ].disabling:to_individual(
+                                        name,
+                                        subject_name
+                                    )
+                                else
+                                    status = "off"
+                                    column_mapping.columns[
+                                        exploded.column
+                                    ].enabling:to_individual(
+                                        name,
+                                        subject_name
+                                    )
+                                end
+                            elseif "group" == column_mapping.rows[
+                                exploded.row
+                            ].type then
+                                local enabled_count = 0
+                                local disabled_count = 0
+                                edutest.for_all_members(
+                                    subject_name,
+                                    function(
+                                        player,
+                                        name
+                                    )
+                                        if column_mapping.columns[
+                                            exploded.column
+                                        ].check(
+                                            name
+                                        ) then
+                                            enabled_count = enabled_count + 1
+                                        else
+                                            disabled_count = disabled_count + 1
+                                        end
+                                    end
+                                )
+                                if 0 == disabled_count then
+                                    status = "on"
+                                    column_mapping.columns[
+                                        exploded.column
+                                    ].disabling:to_group(
+                                        name,
+                                        subject_name
+                                    )
+                                else
+                                    status = "off"
+                                    column_mapping.columns[
+                                        exploded.column
+                                    ].enabling:to_group(
+                                        name,
+                                        subject_name
+                                    )
+                                end
+                            else
+                                local enabled_count = 0
+                                local disabled_count = 0
+                                edutest.for_all_students(
+                                    function(
+                                        player,
+                                        name
+                                    )
+                                        if column_mapping.columns[
+                                            exploded.column
+                                        ].check(
+                                            name
+                                        ) then
+                                            enabled_count = enabled_count + 1
+                                        else
+                                            disabled_count = disabled_count + 1
+                                        end
+                                    end
+                                )
+                                if 0 == disabled_count then
+                                    status = "on"
+                                    column_mapping.columns[
+                                        exploded.column
+                                    ].disabling:to_students(
+                                        name
+                                    )
+                                else
+                                    status = "off"
+                                    column_mapping.columns[
+                                        exploded.column
+                                    ].enabling:to_students(
+                                        name
+                                    )
+                                end
+                            end
+                        end
                         set_current_inventory_form(
                             player,
                             form
                         )
                         return true
                     end
-                    if column_mapping.rows[
-                        exploded.row
-                    ]
-                    and column_mapping.columns[
-                        exploded.column
-                    ] then
-                        local subject_name = column_mapping.rows[
-                            exploded.row
-                        ].name
-                        local status
-                        if "individual" == column_mapping.rows[
-                            exploded.row
-                        ].type then
-                            if column_mapping.columns[
-                                exploded.column
-                            ].check(
-                                subject_name
-                            ) then
-                                status = "on"
-                                column_mapping.columns[
-                                    exploded.column
-                                ].disabling:to_individual(
-                                    name,
-                                    subject_name
-                                )
-                            else
-                                status = "off"
-                                column_mapping.columns[
-                                    exploded.column
-                                ].enabling:to_individual(
-                                    name,
-                                    subject_name
-                                )
-                            end
-                        elseif "individual_teacher" == column_mapping.rows[
-                            exploded.row
-                        ].type then
-                            if column_mapping.columns[
-                                exploded.column
-                            ].check(
-                                subject_name
-                            ) then
-                                status = "on"
-                                column_mapping.columns[
-                                    exploded.column
-                                ].disabling:to_individual(
-                                    name,
-                                    subject_name
-                                )
-                            else
-                                status = "off"
-                                column_mapping.columns[
-                                    exploded.column
-                                ].enabling:to_individual(
-                                    name,
-                                    subject_name
-                                )
-                            end
-                        elseif "individual_offline" == column_mapping.rows[
-                            exploded.row
-                        ].type then
-                            if column_mapping.columns[
-                                exploded.column
-                            ].check(
-                                subject_name
-                            ) then
-                                status = "on"
-                                column_mapping.columns[
-                                    exploded.column
-                                ].disabling:to_individual(
-                                    name,
-                                    subject_name
-                                )
-                            else
-                                status = "off"
-                                column_mapping.columns[
-                                    exploded.column
-                                ].enabling:to_individual(
-                                    name,
-                                    subject_name
-                                )
-                            end
-                        elseif "group" == column_mapping.rows[
-                            exploded.row
-                        ].type then
-                            local enabled_count = 0
-                            local disabled_count = 0
-                            edutest.for_all_members(
-                                subject_name,
-                                function(
-                                    player,
-                                    name
-                                )
-                                    if column_mapping.columns[
-                                        exploded.column
-                                    ].check(
-                                        name
-                                    ) then
-                                        enabled_count = enabled_count + 1
-                                    else
-                                        disabled_count = disabled_count + 1
-                                    end
-                                end
-                            )
-                            if 0 == disabled_count then
-                                status = "on"
-                                column_mapping.columns[
-                                    exploded.column
-                                ].disabling:to_group(
-                                    name,
-                                    subject_name
-                                )
-                            else
-                                status = "off"
-                                column_mapping.columns[
-                                    exploded.column
-                                ].enabling:to_group(
-                                    name,
-                                    subject_name
-                                )
-                            end
-                        else
-                            local enabled_count = 0
-                            local disabled_count = 0
-                            edutest.for_all_students(
-                                function(
-                                    player,
-                                    name
-                                )
-                                    if column_mapping.columns[
-                                        exploded.column
-                                    ].check(
-                                        name
-                                    ) then
-                                        enabled_count = enabled_count + 1
-                                    else
-                                        disabled_count = disabled_count + 1
-                                    end
-                                end
-                            )
-                            if 0 == disabled_count then
-                                status = "on"
-                                column_mapping.columns[
-                                    exploded.column
-                                ].disabling:to_students(
-                                    name
-                                )
-                            else
-                                status = "off"
-                                column_mapping.columns[
-                                    exploded.column
-                                ].enabling:to_students(
-                                    name
-                                )
-                            end
-                        end
-                    end
-                    set_current_inventory_form(
-                        player,
-                        form
-                    )
-                    return true
-                end
-            }
-        )
-        form:add_input(
-            static_layout(
-                "0,6"
-            ),
-            function(
-                layout,
-                data,
-                resources
-            )
-                group_control_layout:reset(
-                )
-                if not resources.selected_index then
-                    resources.selected_index = 1
-                end
-                local help = "label[" .. layout:region_position(
-                    1,
-                    1,
-                    0,
-                    0
-                ) .. ";" .. S(
-                    "Click on table cells to grant or revoke privileges"
-                ) .. "]"
-                if not data then
-                    return help .. group_controls:get_formspec(
-                    )
-                end
-                if not data[
-                    subject
-                ] then
-                    return help .. group_controls:get_formspec(
-                    )
-                end
-                local column_mapping = mapping(
-                )
-                if not column_mapping.rows[
-                    resources.selected_index
-                ] then
-                    return help .. group_controls:get_formspec(
-                    )
-                end
-                if "group" == column_mapping.rows[
-                    resources.selected_index
-                ].type then
-                    multi_control_layout:reset(
-                    )
-                    return get_group_controls(
-                        multi_controls,
-                        group_member_controls,
-                        add_to_group,
-                        remove_from_group,
-                        column_mapping,
-                        form,
-                        layout,
-                        group_member,
-                        group_nonmember,
-                        resources
-                    )
-                end
-                if "individual" == column_mapping.rows[
-                    resources.selected_index
-                ].type then
-                    individual_control_layout:reset(
-                    )
-                    multi_control_layout:reset(
-                    )
-                    return individual_controls:get_formspec(
-                    ) .. multi_controls:get_formspec(
-                    )
-                end
-                if "individual_teacher" == column_mapping.rows[
-                    resources.selected_index
-                ].type then
-                    individual_control_layout:reset(
-                    )
-                    multi_control_layout:reset(
-                    )
-                    return individual_controls:get_formspec(
-                    ) .. multi_controls:get_formspec(
-                    )
-                end
-                if "individual_offline" == column_mapping.rows[
-                    resources.selected_index
-                ].type then
-                    individual_control_layout:reset(
-                    )
-                    multi_control_layout:reset(
-                    )
-                    return individual_controls:get_formspec(
-                    ) .. multi_controls:get_formspec(
-                    )
-                end
-                multi_control_layout:reset(
-                )
-                return multi_controls:get_formspec(
-                )
-            end,
-            {
-                group_member,
-                function(
-                    player,
-                    formname,
-                    fields,
-                    form,
-                    field
-                )
-                    local annotated = annotated_table_event(
-                        fields[
-                            field
-                        ],
-                        form.resources.group_member_table
-                    )
-                    if 1 == annotated.row then
-                        form.resources.selected_member = nil
-                    else
-                        form.resources.selected_member = annotated.row_name
-                    end
-                    return false
-                end,
-                group_nonmember,
-                function(
-                    player,
-                    formname,
-                    fields,
-                    form,
-                    field
-                )
-                    local annotated = annotated_table_event(
-                        fields[
-                            field
-                        ],
-                        form.resources.group_nonmember_table
-                    )
-                    if 1 == annotated.row then
-                        form.resources.selected_nonmember = nil
-                    else
-                        form.resources.selected_nonmember = annotated.row_name
-                    end
-                    return false
-                end
-            }
-        )
-        return {
-            form = form
-        }
-    end
-)
-
-main_menu_form:add_button(
-    main_layout,
-    main_menu_form:new_field(
-    ),
-    S(
-        "Add teacher"
-    ),
-    function(
-        player,
-        formname,
-        fields,
-        form,
-        field
-    )
-        local subform = form.resources[
-            field
-        ].form
-        set_current_inventory_form(
-            player,
-            subform
-        )
-        return true
-    end,
-    function(
-    )
-        local form = new_sub_form(
-            "EDUtest > " .. S(
-                "Add teacher"
-            )
-        )
-        local subject = form:new_field(
-        )
-        form:add_input(
-            static_layout(
-                "0,2"
-            ),
-            basic_student_dropdown(
-                subject
-            ),
-            {
-                subject
-            }
-        )
-        form:add_button(
-            static_layout(
-                "0,3"
-            ),
-            form:new_field(
-            ),
-            S(
-                "Grant teacher privilege"
-            ),
-            function(
-                player,
-                formname,
-                fields
-            )
-                local name = player:get_player_name(
-                )
-                if false == check_field(
-                    name,
-                    formname,
-                    fields,
-                    subject
-                ) then
-                    return false
-                end
-                if choose_student_entry == fields[
-                    subject
-                ] then
-                    return false
-                end
-                edutest.student_to_teacher(
-                    player,
-                    fields[
-                        subject
-                    ]
-                )
-                return true
-            end
-        )
-        return {
-            form = form
-        }
-    end
-)
-
-main_menu_form:add_button(
-    main_layout,
-    main_menu_form:new_field(
-    ),
-    S(
-        "Remove teacher"
-    ),
-    function(
-        player,
-        formname,
-        fields,
-        form,
-        field
-    )
-        local subform = form.resources[
-            field
-        ].form
-        set_current_inventory_form(
-            player,
-            subform
-        )
-        return true
-    end,
-    function(
-    )
-        local form = new_sub_form(
-            "EDUtest > " .. S(
-                "Remove teacher"
-            )
-        )
-        local subject = form:new_field(
-        )
-        form:add_input(
-            static_layout(
-                "0,2"
-            ),
-            basic_teacher_dropdown(
-                subject
-            ),
-            {
-                subject
-            }
-        )
-        form:add_button(
-            static_layout(
-                "0,3"
-            ),
-            form:new_field(
-            ),
-            S(
-                "Revoke teacher privilege"
-            ),
-            function(
-                player,
-                formname,
-                fields
-            )
-                local name = player:get_player_name(
-                )
-                if false == check_field(
-                    name,
-                    formname,
-                    fields,
-                    subject
-                ) then
-                    return false
-                end
-                if choose_teacher_entry == fields[
-                    subject
-                ] then
-                    return false
-                end
-                edutest.teacher_to_student(
-                    player,
-                    fields[
-                        subject
-                    ]
-                )
-                return true
-            end
-        )
-        return {
-            form = form
-        }
-    end
-)
-
-if rawget(
-    _G,
-    "pvpplus"
-) then
-    add_enabling_button(
-        S(
-            "PvP"
-        ),
-        S(
-            "Enable"
-        ),
-        player_name_function_passing(
-            pvpplus.pvp_enable
-        ),
-        S(
-            "Disable"
-        ),
-        player_name_function_passing(
-            pvpplus.pvp_disable
-        ),
-        pvpplus.is_pvp
-    )
-end
-
-if nil ~= minetest.chatcommands[
-    "notify"
-] then
-    main_menu_form:add_button(
-        main_layout,
-        main_menu_form:new_field(
-        ),
-        S(
-            "Notify players"
-        ),
-        function(
-            player,
-            formname,
-            fields,
-            form,
-            field
-        )
-            local subform = form.resources[
-                field
-            ].form
-            set_current_inventory_form(
-                player,
-                subform
-            )
-            return true
-        end,
-        function(
-        )
-            local form = new_sub_form(
-                "EDUtest > " .. S(
-                    "Notify players"
-                ),
-                7,
-                8
-            )
-            local subject = form:new_field(
-            )
-            form:add_input(
-                static_layout(
-                    "0,2"
-                ),
-                student_dropdown(
-                    subject,
-                    always_disabled
-                ),
-                {
-                    subject
                 }
             )
-            local notification = form:new_field(
-            )
             form:add_input(
-                static_layout(
-                    "0.5,5"
-                ),
-                text_field(
-                    notification,
-                    6,
-                    1,
-                    S(
-                        "Notification"
-                    )
-                ),
-                {
-                    notification
-                }
-            )
-            form:add_button(
                 static_layout(
                     "0,6"
                 ),
-                form:new_field(
-                ),
-                S(
-                    "Send"
-                ),
                 function(
-                    player,
-                    formname,
-                    fields
+                    layout,
+                    data,
+                    resources,
+                    lang_code
                 )
-                    local name = player:get_player_name(
+                    group_control_layout:reset(
                     )
-                    if false == check_field(
-                        name,
-                        formname,
-                        fields,
-                        subject
-                    ) then
-                        return false
+                    if not resources.selected_index then
+                        resources.selected_index = 1
                     end
-                    if false == check_field(
-                        name,
-                        formname,
-                        fields,
-                        notification
-                    ) then
-                        return false
-                    end
-                    if group_prefix == string.sub(
-                        fields[
-                            subject
-                        ],
+                    local help = "label[" .. layout:region_position(
                         1,
-                        string.len(
-                            group_prefix
+                        1,
+                        0,
+                        0
+                    ) .. ";" .. S(
+                        "Click on table cells to grant or revoke privileges"
+                    ) .. "]"
+                    if not data then
+                        return help .. group_controls:get_formspec(
+                            wrap_lang_code(
+                                lang_code
+                            )
                         )
-                    ) then
-                        local group_name = string.sub(
-                            fields[
-                                subject
-                            ],
-                            string.len(
-                                group_prefix
-                            ) + 1
-                        )
-                        minetest.chatcommands[
-                            "every_member"
-                        ].func(
-                            name,
-                            group_name .. " notify subject " .. fields[
-                                notification
-                            ]
-                        )
-                        return true
                     end
-                    if all_students_entry == fields[
+                    if not data[
                         subject
                     ] then
-                        minetest.chatcommands[
-                            "every_student"
-                        ].func(
-                            name,
-                            "notify subject " .. fields[
-                                notification
-                            ]
+                        return help .. group_controls:get_formspec(
+                            wrap_lang_code(
+                                lang_code
+                            )
                         )
-                        return true
                     end
-                    minetest.chatcommands[
-                        "notify"
-                    ].func(
-                        name,
-                        fields[
-                            subject
-                        ] .. " " .. fields[
-                            notification
-                        ]
+                    local column_mapping = mapping(
                     )
-                    return true
-                end
+                    if not column_mapping.rows[
+                        resources.selected_index
+                    ] then
+                        return help .. group_controls:get_formspec(
+                            wrap_lang_code(
+                                lang_code
+                            )
+                        )
+                    end
+                    if "group" == column_mapping.rows[
+                        resources.selected_index
+                    ].type then
+                        multi_control_layout:reset(
+                        )
+                        return get_group_controls(
+                            multi_controls,
+                            group_member_controls,
+                            add_to_group,
+                            remove_from_group,
+                            column_mapping,
+                            form,
+                            layout,
+                            group_member,
+                            group_nonmember,
+                            resources,
+                            lang_code
+                        )
+                    end
+                    if "individual" == column_mapping.rows[
+                        resources.selected_index
+                    ].type then
+                        individual_control_layout:reset(
+                        )
+                        multi_control_layout:reset(
+                        )
+                        return individual_controls:get_formspec(
+                            wrap_lang_code(
+                                lang_code
+                            )
+                        ) .. multi_controls:get_formspec(
+                            wrap_lang_code(
+                                lang_code
+                            )
+                        )
+                    end
+                    if "individual_teacher" == column_mapping.rows[
+                        resources.selected_index
+                    ].type then
+                        individual_control_layout:reset(
+                        )
+                        multi_control_layout:reset(
+                        )
+                        return individual_controls:get_formspec(
+                            wrap_lang_code(
+                                lang_code
+                            )
+                        ) .. multi_controls:get_formspec(
+                            wrap_lang_code(
+                                lang_code
+                            )
+                        )
+                    end
+                    if "individual_offline" == column_mapping.rows[
+                        resources.selected_index
+                    ].type then
+                        individual_control_layout:reset(
+                        )
+                        multi_control_layout:reset(
+                        )
+                        return individual_controls:get_formspec(
+                            wrap_lang_code(
+                                lang_code
+                            )
+                        ) .. multi_controls:get_formspec(
+                            wrap_lang_code(
+                                lang_code
+                            )
+                        )
+                    end
+                    multi_control_layout:reset(
+                    )
+                    return multi_controls:get_formspec(
+                        wrap_lang_code(
+                            lang_code
+                        )
+                    )
+                end,
+                {
+                    group_member,
+                    function(
+                        player,
+                        formname,
+                        fields,
+                        form,
+                        field
+                    )
+                        local annotated = annotated_table_event(
+                            fields[
+                                field
+                            ],
+                            form.resources.group_member_table
+                        )
+                        if 1 == annotated.row then
+                            form.resources.selected_member = nil
+                        else
+                            form.resources.selected_member = annotated.row_name
+                        end
+                        return false
+                    end,
+                    group_nonmember,
+                    function(
+                        player,
+                        formname,
+                        fields,
+                        form,
+                        field
+                    )
+                        local annotated = annotated_table_event(
+                            fields[
+                                field
+                            ],
+                            form.resources.group_nonmember_table
+                        )
+                        if 1 == annotated.row then
+                            form.resources.selected_nonmember = nil
+                        else
+                            form.resources.selected_nonmember = annotated.row_name
+                        end
+                        return false
+                    end
+                }
             )
             return {
                 form = form
             }
         end
     )
-end
-
-if edutest.for_all_groups then
+    if nil ~= minetest.chatcommands[
+        "item_pack_add"
+    ] then
+        main_menu_form:add_button(
+            main_layout,
+            main_menu_form:new_field(
+            ),
+            S(
+                "Manage item packs"
+            ),
+            function(
+                player,
+                formname,
+                fields,
+                form,
+                field
+            )
+                local subform = form.resources[
+                    field
+                ].form
+                set_current_inventory_form(
+                    player,
+                    subform
+                )
+                return true
+            end,
+            function(
+            )
+                local item_pack_layout = horizontal_layout(
+                    15
+                )
+                item_pack_layout.row_initial = 7
+                item_pack_layout.column_initial = 0.5
+                local form = new_sub_form(
+                    "EDUtest > " .. S(
+                        "Manage item packs"
+                    ),
+                    15,
+                    14,
+                    item_pack_layout
+                )
+                local item_pack_table_layout = horizontal_layout(
+                    15
+                )
+                item_pack_table_layout.row_initial = 0
+                item_pack_table_layout.column_initial = 0.5
+                local item_pack_table = form:new_field(
+                )
+                local item_pack_content_layout = horizontal_layout(
+                    15
+                )
+                item_pack_content_layout.row_initial = 11
+                item_pack_content_layout.column_initial = 0.5
+                local item_pack_content = form:new_field(
+                )
+                form:add_input(
+                    static_layout(
+                        "0,0"
+                    ),
+                    function(
+                        layout,
+                        data,
+                        resources,
+                        lang_code
+                    )
+                        item_pack_table_layout:reset(
+                        )
+                        local item_pack_table_controls = new_conditional_elements(
+                            form
+                        )
+                        resources.item_pack_table = item_pack_table_data(
+                            item_pack_table
+                        )
+                        item_pack_table_controls:add_element(
+                            data_table(
+                                static_layout(
+                                    "0,2"
+                                ),
+                                resources.item_pack_table,
+                                form.resources.selected_item_pack
+                            )
+                        )
+                        local formspec_data = item_pack_table_controls:get_formspec(
+                            wrap_lang_code(
+                                lang_code
+                            )
+                        )
+                        return formspec_data
+                    end,
+                    {
+                        item_pack_table,
+                        function(
+                            player,
+                            formname,
+                            fields,
+                            form,
+                            field
+                        )
+                            local annotated = annotated_table_event(
+                                fields[
+                                    field
+                                ],
+                                form.resources.item_pack_table
+                            )
+                            if 1 == annotated.row then
+                                form.resources.selected_item_pack = nil
+                            else
+                                local pack_name = annotated.row_name
+                                form.resources.selected_item_pack = pack_name
+                            end
+                            set_current_inventory_form(
+                                player,
+                                form
+                            )
+                            return false
+                        end
+                    }
+                )
+                local new_pack_name = form:new_field(
+                )
+                form:add_input(
+                    item_pack_layout,
+                    text_field(
+                        new_pack_name,
+                        4,
+                        1,
+                        S(
+                            "Item pack name"
+                        ),
+                        "selected_item_pack"
+                    ),
+                    {
+                        new_pack_name
+                    }
+                )
+                local add_count = form:new_field(
+                )
+                form:add_input(
+                    item_pack_layout,
+                    text_field(
+                        add_count,
+                        4,
+                        1,
+                        S(
+                            "Amount to add"
+                        )
+                    ),
+                    {
+                        add_count
+                    }
+                )
+                local choosable_items = {
+                }
+                for item_name, item_data in pairs(
+                    minetest.registered_items
+                ) do
+                    if "" ~= item_name
+                    and not item_data.not_in_creative_inventory then
+                        table.insert(
+                            choosable_items,
+                            item_name
+                        )
+                    end
+                end
+                local added_item_chooser = form:new_field(
+                )
+                form:add_item_chooser(
+                    item_pack_layout,
+                    added_item_chooser,
+                    5,
+                    choosable_items,
+                    show_item_basic,
+                    function(
+                        player,
+                        formname,
+                        fields,
+                        form
+                    )
+                        local name = player:get_player_name(
+                        )
+                        if "" == fields[
+                            new_pack_name
+                        ] then
+                            minetest.chat_send_player(
+                                name,
+                                "EDUtest: " .. S(
+                                    "Please specify item pack name"
+                                )
+                            )
+                            return false
+                        end
+                        local count_raw = fields[
+                            add_count
+                        ]
+                        local count = ""
+                        if "" ~= count_raw then
+                            local count_matched = count_raw:match "^%d+$"
+                            if not count_matched then
+                                minetest.chat_send_player(
+                                    name,
+                                    "EDUtest: " .. S(
+                                        "Invalid item count"
+                                    )
+                                )
+                                return false
+                            end
+                            count = " " .. count_matched
+                        end
+                        minetest.chatcommands[
+                            "item_pack_add"
+                        ].func(
+                            name,
+                            fields[
+                                new_pack_name
+                            ] .. " " .. fields[
+                                added_item_chooser
+                            ] .. count
+                        )
+                        form.resources.item_pack_modified = true
+                        set_current_inventory_form(
+                            player,
+                            form
+                        )
+                        return true
+                    end
+                )
+                form:add_input(
+                    static_layout(
+                        "11,0"
+                    ),
+                    function(
+                        layout,
+                        data,
+                        resources,
+                        lang_code
+                    )
+                        item_pack_content_layout:reset(
+                        )
+                        local item_pack_content_controls = new_conditional_elements(
+                            form
+                        )
+                        local selected_pack = form.resources.selected_item_pack
+                        if selected_pack then
+                            local pack_items = {
+                            }
+                            local pack_item_counts = {
+                            }
+                            edutest.for_all_pack_items(
+                                form.resources.selected_item_pack,
+                                function(
+                                    item_name,
+                                    item_count
+                                )
+                                    table.insert(
+                                        pack_items,
+                                        item_name
+                                    )
+                                    pack_item_counts[
+                                        item_name
+                                    ] = item_count
+                                end
+                            )
+                            if selected_pack ~= form.resources.last_pack then
+                                form.resources.last_pack = selected_pack
+                                item_pack_content_controls:reset_item_chooser(
+                                    item_pack_content
+                                )
+                            end
+                            if form.resources.item_pack_modified then
+                                form.resources.item_pack_modified = nil
+                                item_pack_content_controls:reset_item_chooser(
+                                    item_pack_content
+                                )
+                            end
+                            item_pack_content_controls:add_item_chooser(
+                                item_pack_content_layout,
+                                item_pack_content,
+                                5,
+                                pack_items,
+                                function(
+                                    layout,
+                                    field,
+                                    shown_item,
+                                    form,
+                                    index
+                                )
+                                    local width = 1
+                                    local height = 1
+                                    local count = pack_item_counts[
+                                        shown_item
+                                    ]
+                                    local position = layout:region_position(
+                                        0.06,
+                                        height,
+                                        0.1,
+                                        0.1
+                                    )
+                                    local shown = ""
+                                    if 1 ~= index then
+                                        shown = shown .. "box[" .. position
+                                        shown = shown .. ";0.06,1;black]"
+                                    end
+                                    position = layout:region_position(
+                                        width,
+                                        height,
+                                        0.375,
+                                        0.375
+                                    )
+                                    shown = shown .. "label[" .. position
+                                    shown = shown .. ";" .. count .. "]"
+                                    position = layout:region_position(
+                                        width,
+                                        height,
+                                        0.075,
+                                        0.125
+                                    )
+                                    shown = shown .. "button["
+                                    shown = shown .. position
+                                    shown = shown .. ";" .. width .. "," .. height
+                                    shown = shown .. ";"
+                                    shown = shown .. field
+                                    shown = shown .. "_"
+                                    shown = shown .. shown_item .. "_remove;X]"
+                                    position = layout:region_position(
+                                        width,
+                                        height,
+                                        0.075,
+                                        0.125
+                                    )
+                                    shown = shown .. "button["
+                                    shown = shown .. position
+                                    shown = shown .. ";" .. width .. "," .. height
+                                    shown = shown .. ";"
+                                    shown = shown .. field
+                                    shown = shown .. "_"
+                                    shown = shown .. shown_item .. "_plus;+]"
+                                    position = layout:region_position(
+                                        width,
+                                        height,
+                                        0.075,
+                                        0.125
+                                    )
+                                    shown = shown .. "button["
+                                    shown = shown .. position
+                                    shown = shown .. ";" .. width .. "," .. height
+                                    shown = shown .. ";"
+                                    shown = shown .. field
+                                    shown = shown .. "_"
+                                    shown = shown .. shown_item .. "_minus;-]"
+                                    position = layout:region_position(
+                                        width,
+                                        height,
+                                        0.075,
+                                        0.125
+                                    )
+                                    shown = shown .. "item_image_button["
+                                    shown = shown .. position
+                                    shown = shown .. ";" .. width .. "," .. height
+                                    shown = shown .. ";"
+                                    shown = shown .. shown_item .. ";" .. field
+                                    shown = shown .. "_"
+                                    shown = shown .. shown_item .. ";]"
+                                    return shown
+                                end,
+                                function(
+                                    player,
+                                    formname,
+                                    fields,
+                                    form
+                                )
+                                    if "remove" == fields[
+                                        item_pack_content .. "_action"
+                                    ] then
+                                        local name = player:get_player_name(
+                                        )
+                                        local pack = form.resources.selected_item_pack
+                                        minetest.chatcommands[
+                                            "item_pack_remove"
+                                        ].func(
+                                            name,
+                                            pack .. " " .. fields[
+                                                item_pack_content
+                                            ]
+                                        )
+                                        form.resources.item_pack_modified = true
+                                        set_current_inventory_form(
+                                            player,
+                                            form
+                                        )
+                                    end
+                                    if "plus" == fields[
+                                        item_pack_content .. "_action"
+                                    ] then
+                                        local name = player:get_player_name(
+                                        )
+                                        local pack = form.resources.selected_item_pack
+                                        minetest.chatcommands[
+                                            "item_pack_add"
+                                        ].func(
+                                            name,
+                                            pack .. " " .. fields[
+                                                item_pack_content
+                                            ] .. " 1"
+                                        )
+                                        set_current_inventory_form(
+                                            player,
+                                            form
+                                        )
+                                    end
+                                    if "minus" == fields[
+                                        item_pack_content .. "_action"
+                                    ] then
+                                        local name = player:get_player_name(
+                                        )
+                                        local pack = form.resources.selected_item_pack
+                                        minetest.chatcommands[
+                                            "item_pack_remove"
+                                        ].func(
+                                            name,
+                                            pack .. " " .. fields[
+                                                item_pack_content
+                                            ] .. " 1"
+                                        )
+                                        set_current_inventory_form(
+                                            player,
+                                            form
+                                        )
+                                    end
+                                    return true
+                                end,
+                                {
+                                    "remove",
+                                    "plus",
+                                    "minus"
+                                }
+                            )
+                        end
+                        local formspec = item_pack_content_controls:get_formspec(
+                            wrap_lang_code(
+                                lang_code
+                            )
+                        )
+                        return formspec
+                    end,
+                    {
+                    }
+                )
+                return {
+                    form = form
+                }
+            end
+        )
+    end
     main_menu_form:add_button(
         main_layout,
         main_menu_form:new_field(
         ),
         S(
-            "Manage groups"
+            "Add teacher"
         ),
         function(
             player,
@@ -5033,10 +5735,8 @@ if edutest.for_all_groups then
         )
             local form = new_sub_form(
                 "EDUtest > " .. S(
-                    "Manage groups"
-                ),
-                7,
-                8
+                    "Add teacher"
+                )
             )
             local subject = form:new_field(
             )
@@ -5051,45 +5751,14 @@ if edutest.for_all_groups then
                     subject
                 }
             )
-            local group = form:new_field(
-            )
-            form:add_input(
+            form:add_button(
                 static_layout(
                     "0,3"
                 ),
-                group_dropdown(
-                    group
-                ),
-                {
-                    group
-                }
-            )
-            local new_group = form:new_field(
-            )
-            form:add_input(
-                static_layout(
-                    "0.5,5"
-                ),
-                text_field(
-                    new_group,
-                    6,
-                    1,
-                    S(
-                        "Name for new group"
-                    )
-                ),
-                {
-                    new_group
-                }
-            )
-            form:add_button(
-                static_layout(
-                    "0,6"
-                ),
                 form:new_field(
                 ),
                 S(
-                    "Add to group"
+                    "Grant teacher privilege"
                 ),
                 function(
                     player,
@@ -5106,128 +5775,14 @@ if edutest.for_all_groups then
                     ) then
                         return false
                     end
-                    if false == check_field(
-                        name,
-                        formname,
-                        fields,
-                        group
-                    ) then
-                        return false
-                    end
                     if choose_student_entry == fields[
                         subject
                     ] then
                         return false
                     end
-                    local group_name
-                    if choose_group_entry == fields[
-                        group
-                    ] then
-                        return false
-                    end
-                    if new_group_entry == fields[
-                        group
-                    ] then
-                        group_name = fields[
-                            new_group
-                        ]
-                        group_name = string.gsub(
-                            group_name,
-                            " ",
-                            "_"
-                        )
-                        minetest.chatcommands[
-                            "create_group"
-                        ].func(
-                            name,
-                            group_name
-                        )
-                    else
-                        group_name = fields[
-                            group
-                        ]
-                    end
-                    minetest.chatcommands[
-                        "enter_group"
-                    ].func(
-                        name,
-                        group_name .. " " .. fields[
-                            subject
-                        ]
-                    )
-                    return true
-                end
-            )
-            form:add_button(
-                static_layout(
-                    "0,7"
-                ),
-                form:new_field(
-                ),
-                S(
-                    "Remove from group"
-                ),
-                function(
-                    player,
-                    formname,
-                    fields
-                )
-                    local name = player:get_player_name(
-                    )
-                    if false == check_field(
-                        name,
-                        formname,
-                        fields,
-                        subject
-                    ) then
-                        return false
-                    end
-                    if false == check_field(
-                        name,
-                        formname,
-                        fields,
-                        group
-                    ) then
-                        return false
-                    end
-                    if choose_student_entry == fields[
-                        subject
-                    ] then
-                        return false
-                    end
-                    local group_name
-                    if choose_group_entry == fields[
-                        group
-                    ] then
-                        return false
-                    end
-                    if new_group_entry == fields[
-                        group
-                    ] then
-                        group_name = fields[
-                            new_group
-                        ]
-                        group_name = string.gsub(
-                            group_name,
-                            " ",
-                            "_"
-                        )
-                        minetest.chatcommands[
-                            "create_group"
-                        ].func(
-                            name,
-                            group_name
-                        )
-                    else
-                        group_name = fields[
-                            group
-                        ]
-                    end
-                    minetest.chatcommands[
-                        "leave_group"
-                    ].func(
-                        name,
-                        group_name .. " " .. fields[
+                    edutest.student_to_teacher(
+                        player,
+                        fields[
                             subject
                         ]
                     )
@@ -5239,31 +5794,12 @@ if edutest.for_all_groups then
             }
         end
     )
-end
-
-add_privilege_button(
-    S(
-        "Messaging"
-    ),
-    "shout"
-)
-
-add_privilege_button(
-    S(
-        "Fly Mode"
-    ),
-    "fly"
-)
-
-if nil ~= minetest.chatcommands[
-    "area_pos"
-] then
     main_menu_form:add_button(
         main_layout,
         main_menu_form:new_field(
         ),
         S(
-            "Area protection"
+            "Remove teacher"
         ),
         function(
             player,
@@ -5285,52 +5821,21 @@ if nil ~= minetest.chatcommands[
         )
             local form = new_sub_form(
                 "EDUtest > " .. S(
-                    "Area protection"
-                ),
-                7,
-                8
+                    "Remove teacher"
+                )
             )
-            form:add_button(
+            local subject = form:new_field(
+            )
+            form:add_input(
                 static_layout(
                     "0,2"
                 ),
-                form:new_field(
+                basic_teacher_dropdown(
+                    subject
                 ),
-                S(
-                    "Set corner 1"
-                ),
-                function(
-                    player,
-                    formname,
-                    fields
-                )
-                    local name = player:get_player_name(
-                    )
-                    if nil ~= minetest.chatcommands[
-                        "highlight_pos1"
-                    ] then
-                        minetest.chatcommands[
-                            "highlight_pos1"
-                        ].func(
-                            name,
-                            ""
-                        )
-                    else
-                        minetest.chatcommands[
-                            "area_pos"
-                        ].func(
-                            name,
-                            "set1"
-                        )
-                        minetest.chat_send_player(
-                            name,
-                            S(
-                                "Punch a block to set the corner of the area"
-                            )
-                        )
-                    end
-                    return true
-                end
+                {
+                    subject
+                }
             )
             form:add_button(
                 static_layout(
@@ -5339,80 +5844,7 @@ if nil ~= minetest.chatcommands[
                 form:new_field(
                 ),
                 S(
-                    "Set corner 2"
-                ),
-                function(
-                    player,
-                    formname,
-                    fields
-                )
-                    local name = player:get_player_name(
-                    )
-                    if nil ~= minetest.chatcommands[
-                        "highlight_pos2"
-                    ] then
-                        minetest.chatcommands[
-                            "highlight_pos2"
-                        ].func(
-                            name,
-                            ""
-                        )
-                    else
-                        minetest.chatcommands[
-                            "area_pos"
-                        ].func(
-                            name,
-                            "set2"
-                        )
-                        minetest.chat_send_player(
-                            name,
-                            S(
-                                "Punch a block to set the corner of the area"
-                            )
-                        )
-                    end
-                    return true
-                end
-            )
-            local owner = form:new_field(
-            )
-            form:add_input(
-                static_layout(
-                    "0.2,4.2"
-                ),
-                basic_student_dropdown_with_groups(
-                    owner
-                ),
-                {
-                    owner
-                }
-            )
-            local area_name = form:new_field(
-            )
-            form:add_input(
-                static_layout(
-                    "0.5,6"
-                ),
-                text_field(
-                    area_name,
-                    6,
-                    1,
-                    S(
-                        "Name for new area"
-                    )
-                ),
-                {
-                    area_name
-                }
-            )
-            form:add_button(
-                static_layout(
-                    "0,7"
-                ),
-                form:new_field(
-                ),
-                S(
-                    "Assign area"
+                    "Revoke teacher privilege"
                 ),
                 function(
                     player,
@@ -5425,61 +5857,19 @@ if nil ~= minetest.chatcommands[
                         name,
                         formname,
                         fields,
-                        owner
+                        subject
                     ) then
                         return false
                     end
-                    if choose_student_entry == fields[
-                        owner
+                    if choose_teacher_entry == fields[
+                        subject
                     ] then
                         return false
                     end
-                    if "" == fields[
-                        area_name
-                    ] then
-                        minetest.chat_send_player(
-                            name,
-                            "EDUtest: " .. S(
-                                "Please enter a name for the area"
-                            )
-                        )
-                        return false
-                    end
-                    if group_prefix == string.sub(
+                    edutest.teacher_to_student(
+                        player,
                         fields[
-                            owner
-                        ],
-                        1,
-                        string.len(
-                            group_prefix
-                        )
-                    ) then
-                        local group_name = string.sub(
-                            fields[
-                                owner
-                            ],
-                            string.len(
-                                group_prefix
-                            ) + 1
-                        )
-                        minetest.chatcommands[
-                            "highlight_set_owner_group"
-                        ].func(
-                            name,
-                            group_name .. " " .. fields[
-                                area_name
-                            ]
-                        )
-                        return true
-                    end
-                    minetest.chatcommands[
-                        "highlight_areas"
-                    ].func(
-                        name,
-                        "set_owner " .. fields[
-                            owner
-                        ] .. " " .. fields[
-                            area_name
+                            subject
                         ]
                     )
                     return true
@@ -5490,43 +5880,791 @@ if nil ~= minetest.chatcommands[
             }
         end
     )
-end
-
-if nil ~= minetest.registered_privileges[
-    "invincible"
-] then
+    if rawget(
+        _G,
+        "pvpplus"
+    ) then
+        add_enabling_button(
+            S(
+                "PvP"
+            ),
+            S(
+                "Enable"
+            ),
+            player_name_function_passing(
+                pvpplus.pvp_enable
+            ),
+            S(
+                "Disable"
+            ),
+            player_name_function_passing(
+                pvpplus.pvp_disable
+            ),
+            pvpplus.is_pvp
+        )
+    end
+    if nil ~= minetest.chatcommands[
+        "notify"
+    ] then
+        main_menu_form:add_button(
+            main_layout,
+            main_menu_form:new_field(
+            ),
+            S(
+                "Notify players"
+            ),
+            function(
+                player,
+                formname,
+                fields,
+                form,
+                field
+            )
+                local subform = form.resources[
+                    field
+                ].form
+                set_current_inventory_form(
+                    player,
+                    subform
+                )
+                return true
+            end,
+            function(
+            )
+                local form = new_sub_form(
+                    "EDUtest > " .. S(
+                        "Notify players"
+                    ),
+                    7,
+                    8
+                )
+                local subject = form:new_field(
+                )
+                form:add_input(
+                    static_layout(
+                        "0,2"
+                    ),
+                    student_dropdown(
+                        subject,
+                        always_disabled
+                    ),
+                    {
+                        subject
+                    }
+                )
+                local notification = form:new_field(
+                )
+                form:add_input(
+                    static_layout(
+                        "0.5,5"
+                    ),
+                    text_field(
+                        notification,
+                        6,
+                        1,
+                        S(
+                            "Notification"
+                        )
+                    ),
+                    {
+                        notification
+                    }
+                )
+                form:add_button(
+                    static_layout(
+                        "0,6"
+                    ),
+                    form:new_field(
+                    ),
+                    S(
+                        "Send"
+                    ),
+                    function(
+                        player,
+                        formname,
+                        fields
+                    )
+                        local name = player:get_player_name(
+                        )
+                        if false == check_field(
+                            name,
+                            formname,
+                            fields,
+                            subject
+                        ) then
+                            return false
+                        end
+                        if false == check_field(
+                            name,
+                            formname,
+                            fields,
+                            notification
+                        ) then
+                            return false
+                        end
+                        if group_prefix == string.sub(
+                            fields[
+                                subject
+                            ],
+                            1,
+                            string.len(
+                                group_prefix
+                            )
+                        ) then
+                            local group_name = string.sub(
+                                fields[
+                                    subject
+                                ],
+                                string.len(
+                                    group_prefix
+                                ) + 1
+                            )
+                            minetest.chatcommands[
+                                "every_member"
+                            ].func(
+                                name,
+                                group_name .. " notify subject " .. fields[
+                                    notification
+                                ]
+                            )
+                            return true
+                        end
+                        if all_students_entry == fields[
+                            subject
+                        ] then
+                            minetest.chatcommands[
+                                "every_student"
+                            ].func(
+                                name,
+                                "notify subject " .. fields[
+                                    notification
+                                ]
+                            )
+                            return true
+                        end
+                        minetest.chatcommands[
+                            "notify"
+                        ].func(
+                            name,
+                            fields[
+                                subject
+                            ] .. " " .. fields[
+                                notification
+                            ]
+                        )
+                        return true
+                    end
+                )
+                return {
+                    form = form
+                }
+            end
+        )
+    end
+    if edutest.for_all_groups then
+        main_menu_form:add_button(
+            main_layout,
+            main_menu_form:new_field(
+            ),
+            S(
+                "Manage groups"
+            ),
+            function(
+                player,
+                formname,
+                fields,
+                form,
+                field
+            )
+                local subform = form.resources[
+                    field
+                ].form
+                set_current_inventory_form(
+                    player,
+                    subform
+                )
+                return true
+            end,
+            function(
+            )
+                local form = new_sub_form(
+                    "EDUtest > " .. S(
+                        "Manage groups"
+                    ),
+                    7,
+                    8
+                )
+                local subject = form:new_field(
+                )
+                form:add_input(
+                    static_layout(
+                        "0,2"
+                    ),
+                    basic_student_dropdown(
+                        subject
+                    ),
+                    {
+                        subject
+                    }
+                )
+                local group = form:new_field(
+                )
+                form:add_input(
+                    static_layout(
+                        "0,3"
+                    ),
+                    group_dropdown(
+                        group
+                    ),
+                    {
+                        group
+                    }
+                )
+                local new_group = form:new_field(
+                )
+                form:add_input(
+                    static_layout(
+                        "0.5,5"
+                    ),
+                    text_field(
+                        new_group,
+                        6,
+                        1,
+                        S(
+                            "Name for new group"
+                        )
+                    ),
+                    {
+                        new_group
+                    }
+                )
+                form:add_button(
+                    static_layout(
+                        "0,6"
+                    ),
+                    form:new_field(
+                    ),
+                    S(
+                        "Add to group"
+                    ),
+                    function(
+                        player,
+                        formname,
+                        fields
+                    )
+                        local name = player:get_player_name(
+                        )
+                        if false == check_field(
+                            name,
+                            formname,
+                            fields,
+                            subject
+                        ) then
+                            return false
+                        end
+                        if false == check_field(
+                            name,
+                            formname,
+                            fields,
+                            group
+                        ) then
+                            return false
+                        end
+                        if choose_student_entry == fields[
+                            subject
+                        ] then
+                            return false
+                        end
+                        local group_name
+                        if choose_group_entry == fields[
+                            group
+                        ] then
+                            return false
+                        end
+                        if new_group_entry == fields[
+                            group
+                        ] then
+                            group_name = fields[
+                                new_group
+                            ]
+                            group_name = string.gsub(
+                                group_name,
+                                " ",
+                                "_"
+                            )
+                            minetest.chatcommands[
+                                "create_group"
+                            ].func(
+                                name,
+                                group_name
+                            )
+                        else
+                            group_name = fields[
+                                group
+                            ]
+                        end
+                        minetest.chatcommands[
+                            "enter_group"
+                        ].func(
+                            name,
+                            group_name .. " " .. fields[
+                                subject
+                            ]
+                        )
+                        return true
+                    end
+                )
+                form:add_button(
+                    static_layout(
+                        "0,7"
+                    ),
+                    form:new_field(
+                    ),
+                    S(
+                        "Remove from group"
+                    ),
+                    function(
+                        player,
+                        formname,
+                        fields
+                    )
+                        local name = player:get_player_name(
+                        )
+                        if false == check_field(
+                            name,
+                            formname,
+                            fields,
+                            subject
+                        ) then
+                            return false
+                        end
+                        if false == check_field(
+                            name,
+                            formname,
+                            fields,
+                            group
+                        ) then
+                            return false
+                        end
+                        if choose_student_entry == fields[
+                            subject
+                        ] then
+                            return false
+                        end
+                        local group_name
+                        if choose_group_entry == fields[
+                            group
+                        ] then
+                            return false
+                        end
+                        if new_group_entry == fields[
+                            group
+                        ] then
+                            group_name = fields[
+                                new_group
+                            ]
+                            group_name = string.gsub(
+                                group_name,
+                                " ",
+                                "_"
+                            )
+                            minetest.chatcommands[
+                                "create_group"
+                            ].func(
+                                name,
+                                group_name
+                            )
+                        else
+                            group_name = fields[
+                                group
+                            ]
+                        end
+                        minetest.chatcommands[
+                            "leave_group"
+                        ].func(
+                            name,
+                            group_name .. " " .. fields[
+                                subject
+                            ]
+                        )
+                        return true
+                    end
+                )
+                return {
+                    form = form
+                }
+            end
+        )
+    end
+    add_privilege_button(
+        S(
+            "Messaging"
+        ),
+        "shout"
+    )
+    add_privilege_button(
+        S(
+            "Fly Mode"
+        ),
+        "fly"
+    )
+    if nil ~= minetest.chatcommands[
+        "area_pos"
+    ] then
+        main_menu_form:add_button(
+            main_layout,
+            main_menu_form:new_field(
+            ),
+            S(
+                "Area protection"
+            ),
+            function(
+                player,
+                formname,
+                fields,
+                form,
+                field
+            )
+                local subform = form.resources[
+                    field
+                ].form
+                set_current_inventory_form(
+                    player,
+                    subform
+                )
+                return true
+            end,
+            function(
+            )
+                local form = new_sub_form(
+                    "EDUtest > " .. S(
+                        "Area protection"
+                    ),
+                    7,
+                    8
+                )
+                form:add_button(
+                    static_layout(
+                        "0,2"
+                    ),
+                    form:new_field(
+                    ),
+                    S(
+                        "Set corner 1"
+                    ),
+                    function(
+                        player,
+                        formname,
+                        fields
+                    )
+                        local name = player:get_player_name(
+                        )
+                        if nil ~= minetest.chatcommands[
+                            "highlight_pos1"
+                        ] then
+                            minetest.chatcommands[
+                                "highlight_pos1"
+                            ].func(
+                                name,
+                                ""
+                            )
+                        else
+                            minetest.chatcommands[
+                                "area_pos"
+                            ].func(
+                                name,
+                                "set1"
+                            )
+                            minetest.chat_send_player(
+                                name,
+                                S(
+                                    "Punch a block to set the corner of the area"
+                                )
+                            )
+                        end
+                        return true
+                    end
+                )
+                form:add_button(
+                    static_layout(
+                        "0,3"
+                    ),
+                    form:new_field(
+                    ),
+                    S(
+                        "Set corner 2"
+                    ),
+                    function(
+                        player,
+                        formname,
+                        fields
+                    )
+                        local name = player:get_player_name(
+                        )
+                        if nil ~= minetest.chatcommands[
+                            "highlight_pos2"
+                        ] then
+                            minetest.chatcommands[
+                                "highlight_pos2"
+                            ].func(
+                                name,
+                                ""
+                            )
+                        else
+                            minetest.chatcommands[
+                                "area_pos"
+                            ].func(
+                                name,
+                                "set2"
+                            )
+                            minetest.chat_send_player(
+                                name,
+                                S(
+                                    "Punch a block to set the corner of the area"
+                                )
+                            )
+                        end
+                        return true
+                    end
+                )
+                local owner = form:new_field(
+                )
+                form:add_input(
+                    static_layout(
+                        "0.2,4.2"
+                    ),
+                    basic_student_dropdown_with_groups(
+                        owner
+                    ),
+                    {
+                        owner
+                    }
+                )
+                local area_name = form:new_field(
+                )
+                form:add_input(
+                    static_layout(
+                        "0.5,6"
+                    ),
+                    text_field(
+                        area_name,
+                        6,
+                        1,
+                        S(
+                            "Name for new area"
+                        )
+                    ),
+                    {
+                        area_name
+                    }
+                )
+                form:add_button(
+                    static_layout(
+                        "0,7"
+                    ),
+                    form:new_field(
+                    ),
+                    S(
+                        "Assign area"
+                    ),
+                    function(
+                        player,
+                        formname,
+                        fields
+                    )
+                        local name = player:get_player_name(
+                        )
+                        if false == check_field(
+                            name,
+                            formname,
+                            fields,
+                            owner
+                        ) then
+                            return false
+                        end
+                        if choose_student_entry == fields[
+                            owner
+                        ] then
+                            return false
+                        end
+                        if "" == fields[
+                            area_name
+                        ] then
+                            minetest.chat_send_player(
+                                name,
+                                "EDUtest: " .. S(
+                                    "Please enter a name for the area"
+                                )
+                            )
+                            return false
+                        end
+                        if group_prefix == string.sub(
+                            fields[
+                                owner
+                            ],
+                            1,
+                            string.len(
+                                group_prefix
+                            )
+                        ) then
+                            local group_name = string.sub(
+                                fields[
+                                    owner
+                                ],
+                                string.len(
+                                    group_prefix
+                                ) + 1
+                            )
+                            minetest.chatcommands[
+                                "highlight_set_owner_group"
+                            ].func(
+                                name,
+                                group_name .. " " .. fields[
+                                    area_name
+                                ]
+                            )
+                            return true
+                        end
+                        minetest.chatcommands[
+                            "highlight_areas"
+                        ].func(
+                            name,
+                            "set_owner " .. fields[
+                                owner
+                            ] .. " " .. fields[
+                                area_name
+                            ]
+                        )
+                        return true
+                    end
+                )
+                return {
+                    form = form
+                }
+            end
+        )
+    end
+    if nil ~= minetest.registered_privileges[
+        "invincible"
+    ] then
+        main_menu_form:add_button(
+            main_layout,
+            main_menu_form:new_field(
+            ),
+            S(
+                "Toggle invulnerability"
+            ),
+            function(
+                player,
+                formname,
+                fields
+            )
+                local name = player:get_player_name(
+                )
+                if minetest.check_player_privs(
+                    name,
+                    {
+                        invincible = true
+                    }
+                ) then
+                    minetest.chatcommands[
+                        "revoke"
+                    ].func(
+                        name,
+                        name .. " invincible"
+                    )
+                else
+                    minetest.chatcommands[
+                        "grant"
+                    ].func(
+                        name,
+                        name .. " invincible"
+                    )
+                end
+                return true
+            end
+        )
+    end
+    if nil ~= minetest.chatcommands[
+        "vanish"
+    ] then
+        main_menu_form:add_button(
+            main_layout,
+            main_menu_form:new_field(
+            ),
+            S(
+                "Toggle invisibility"
+            ),
+            function(
+                player,
+                formname,
+                fields
+            )
+                local name = player:get_player_name(
+                )
+                minetest.chatcommands[
+                    "vanish"
+                ].func(
+                    name,
+                    ""
+                )
+                return true
+            end
+        )
+    end
     main_menu_form:add_button(
         main_layout,
         main_menu_form:new_field(
         ),
         S(
-            "Toggle invulnerability"
+            "Toggle sun movement"
         ),
         function(
             player,
             formname,
             fields
         )
-            local name = player:get_player_name(
+            local own_name = player:get_player_name(
             )
-            if minetest.check_player_privs(
-                name,
+            if not minetest.check_player_privs(
+                own_name,
                 {
-                    invincible = true
+                    server = true,
                 }
             ) then
-                minetest.chatcommands[
-                    "revoke"
-                ].func(
-                    name,
-                    name .. " invincible"
+                minetest.chat_send_player(
+                    own_name,
+                    "EDUtest: " .. S(
+                        "missing privilege: @1",
+                        "server"
+                    )
+                )
+                return true
+            end
+            local old_value = minetest.settings:get(
+                "time_speed"
+            )
+            if "0" == old_value then
+                minetest.chat_send_player(
+                    own_name,
+                    "EDUtest: " .. S(
+                        "sun movement enabled"
+                    )
+                )
+                minetest.settings:set(
+                    "time_speed",
+                    "72"
                 )
             else
-                minetest.chatcommands[
-                    "grant"
-                ].func(
-                    name,
-                    name .. " invincible"
+                minetest.chat_send_player(
+                    own_name,
+                    "EDUtest: " .. S(
+                        "sun movement disabled"
+                    )
+                )
+                minetest.settings:set(
+                    "time_speed",
+                   "0"
                 )
             end
             return true
@@ -5534,93 +6672,9 @@ if nil ~= minetest.registered_privileges[
     )
 end
 
-if nil ~= minetest.chatcommands[
-    "vanish"
-] then
-    main_menu_form:add_button(
-        main_layout,
-        main_menu_form:new_field(
-        ),
-        S(
-            "Toggle invisibility"
-        ),
-        function(
-            player,
-            formname,
-            fields
-        )
-            local name = player:get_player_name(
-            )
-            minetest.chatcommands[
-                "vanish"
-            ].func(
-                name,
-                ""
-            )
-            return true
-        end
-    )
-end
-
-main_menu_form:add_button(
-    main_layout,
-    main_menu_form:new_field(
-    ),
-    S(
-        "Toggle sun movement"
-    ),
-    function(
-        player,
-        formname,
-        fields
-    )
-        local own_name = player:get_player_name(
-        )
-        if not minetest.check_player_privs(
-            own_name,
-            {
-                server = true,
-            }
-        ) then
-            minetest.chat_send_player(
-                own_name,
-                "EDUtest: " .. string.format(
-                    S(
-                        "missing privilege: %s"
-                    ),
-                    "server"
-                )
-            )
-            return true
-        end
-        local old_value = minetest.settings:get(
-            "time_speed"
-        )
-        if "0" == old_value then
-            minetest.chat_send_player(
-                own_name,
-                "EDUtest: " .. S(
-                    "sun movement enabled"
-                )
-            )
-            minetest.settings:set(
-                "time_speed",
-                "72"
-            )
-        else
-            minetest.chat_send_player(
-                own_name,
-                "EDUtest: " .. S(
-                    "sun movement disabled"
-                )
-            )
-            minetest.settings:set(
-                "time_speed",
-               "0"
-            )
-        end
-        return true
-    end
+minetest.after(
+    0,
+    initialize_forms
 )
 
 local on_player_receive_fields = function(
@@ -5699,7 +6753,9 @@ if rawget(
             )
                 return {
                     formspec = main_menu_form:get_formspec(
-                        player:get_player_name(
+                        wrap_player(
+                            player:get_player_name(
+                            )
                         )
                     ),
                 }
@@ -5753,7 +6809,9 @@ elseif rawget(
                 main_layout:reset(
                 )
                 return main_menu_form:get_formspec(
-                    player:get_player_name(
+                    wrap_player(
+                        player:get_player_name(
+                        )
                     )
                 )
             end,
