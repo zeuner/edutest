@@ -6585,9 +6585,11 @@ local initialize_forms = function(
             end
         )
     end
-    if nil ~= minetest.chatcommands[
-        "vanish"
-    ] then
+-- invisibility support disabled until resolution of collision detection issues
+--    if nil ~= minetest.chatcommands[
+--        "vanish"
+--    ] then
+    if false then
         main_menu_form:add_button(
             main_layout,
             main_menu_form:new_field(
