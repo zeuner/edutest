@@ -23,7 +23,6 @@ granted the "teacher" privilege. Actions have an effect to all players that have
 * unified_inventory (https://github.com/minetest-technic/unified_inventory)
 * freeze (https://github.com/PenguinDad/freeze)
 * pvpplus (https://github.com/MT-Eurythmia/pvpplus)
-* intllib (https://github.com/minetest-mods/intllib)
 * invis (https://github.com/octacian/minetest-mod-invis)
 * areas (https://github.com/ShadowNinja/areas)
 * invincibility (https://github.com/zeuner/invincibility)
