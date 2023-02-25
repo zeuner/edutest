@@ -72,7 +72,7 @@ local string_width = function(
     local proportional = math.ceil(
         string.len(
             translated
-        ) / 7 / granularity
+        ) / 9 / granularity
     ) * granularity
     return proportional + granularity
 end
@@ -440,7 +440,7 @@ local vertical_layout = function(
         column = column,
         row_initial = row,
         column_initial = column,
-        width_granularity = 1,
+        width_granularity = 3,
         reset = function(
             self
         )
@@ -448,6 +448,11 @@ local vertical_layout = function(
             self.row = self.row_initial
         end,
         line_break = function(
+        )
+        end,
+        require_width = function(
+            self,
+            width
         )
         end,
         region_position = function(
@@ -481,7 +486,7 @@ local horizontal_layout = function(
         column = column,
         row_initial = row,
         column_initial = column,
-        width_granularity = 1,
+        width_granularity = 3,
         reset = function(
             self
         )
@@ -493,6 +498,15 @@ local horizontal_layout = function(
         )
             self.column = 0
             self.row = self.row + 1
+        end,
+        require_width = function(
+            self,
+            width
+        )
+            if max_width <= self.column + width then
+                self:line_break(
+                )
+            end
         end,
         region_position = function(
             self,
@@ -533,7 +547,7 @@ local horizontal_grid_layout = function(
         column = column,
         row_initial = row,
         column_initial = column,
-        width_granularity = 1,
+        width_granularity = 3,
         reset = function(
             self
         )
@@ -545,6 +559,15 @@ local horizontal_grid_layout = function(
         )
             self.column = 0
             self.row = self.row + 1
+        end,
+        require_width = function(
+            self,
+            width
+        )
+            if max_width <= self.column + width then
+                self:line_break(
+                )
+            end
         end,
         region_position = function(
             self,
@@ -594,6 +617,14 @@ local horizontal_grid_adapted_layout = function(
             self.original_layout:line_break(
             )
         end,
+        require_width = function(
+            self,
+            width
+        )
+            self.original_layout:require_width(
+                width
+            )
+        end,
         region_position = function(
             self,
             width,
@@ -622,7 +653,12 @@ local static_layout = function(
         line_break = function(
         )
         end,
-        width_granularity = 1,
+        require_width = function(
+            self,
+            width
+        )
+        end,
+        width_granularity = 3,
         region_position = function(
             self,
             width,
@@ -993,6 +1029,14 @@ add_item_chooser = function(
                 form
             )
             return true
+        end
+    )
+    form:add_element(
+        function(
+        )
+            layout:line_break(
+            )
+            return ""
         end
     )
     form:add_button(
@@ -1757,9 +1801,10 @@ local mapping_table = function(
         end
         local entries = ""
         local delimiter = ""
+        local table_width_granularity = 2
         local max_width = string_width(
             entries,
-            layout.width_granularity,
+            table_width_granularity,
             lang_code
         )
         local row_index = 2
@@ -1790,7 +1835,7 @@ local mapping_table = function(
             end
             local width = string_width(
                 entry,
-                layout.width_granularity,
+                table_width_granularity,
                 lang_code
             )
             local column_index = 4
@@ -1919,7 +1964,7 @@ local mapping_table = function(
             column_index = column_index + 2
             full_width = full_width + boolean_column_width(
                 column.title,
-                layout.width_granularity,
+                table_width_granularity,
                 lang_code
             )
         end
@@ -3055,7 +3100,7 @@ local get_group_controls = function(
     group_member_controls:add_element(
         data_table(
             static_layout(
-                "0,7"
+                "0,6"
             ),
             resources.group_member_table,
             form.resources.selected_member
@@ -3070,7 +3115,9 @@ local get_group_controls = function(
     group_member_controls:add_element(
         data_table(
             static_layout(
-                "8,7"
+                (
+                    7 + layout.width_granularity
+                ) .. ",6"
             ),
             resources.group_nonmember_table,
             form.resources.selected_nonmember
@@ -3647,7 +3694,7 @@ local initialize_forms = function(
                     "Manage players"
                 ),
                 20,
-                15
+                16
             )
             local mapping = generic_axis_mapping_lazy(
                 tabular_interface_columns,
