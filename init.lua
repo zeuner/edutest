@@ -2491,10 +2491,9 @@ local unary_command_application = function(
             player_name,
             group_name
         )
-            minetest.chatcommands[
-                "every_member"
-            ].func(
+            edutest.apply_chatcommand(
                 player_name,
+                "every_member",
                 group_name .. " " .. self.command .. " subject"
             )
             return true
@@ -2503,10 +2502,9 @@ local unary_command_application = function(
             self,
             player_name
         )
-            minetest.chatcommands[
-                "every_student"
-            ].func(
+            edutest.apply_chatcommand(
                 player_name,
+                "every_student",
                 self.command .. " subject"
             )
             return true
@@ -2516,10 +2514,9 @@ local unary_command_application = function(
             player_name,
             individual_name
         )
-            minetest.chatcommands[
-                self.command
-            ].func(
+            edutest.apply_chatcommand(
                 player_name,
+                self.command,
                 individual_name
             )
             return true
@@ -2540,10 +2537,9 @@ local privilege_grant = function(
             player_name,
             group_name
         )
-            minetest.chatcommands[
-                "every_member"
-            ].func(
+            edutest.apply_chatcommand(
                 player_name,
+                "every_member",
                 group_name .. " grant subject " .. self.privilege
             )
             return true
@@ -2552,10 +2548,9 @@ local privilege_grant = function(
             self,
             player_name
         )
-            minetest.chatcommands[
-                "every_student"
-            ].func(
+            edutest.apply_chatcommand(
                 player_name,
+                "every_student",
                 "grant subject " .. self.privilege
             )
             return true
@@ -2565,10 +2560,9 @@ local privilege_grant = function(
             player_name,
             individual_name
         )
-            minetest.chatcommands[
-                "grant"
-            ].func(
+            edutest.apply_chatcommand(
                 player_name,
+                "grant",
                 individual_name .. " " .. self.privilege
             )
             return true
@@ -2586,10 +2580,9 @@ local privilege_revocation = function(
             player_name,
             group_name
         )
-            minetest.chatcommands[
-                "every_member"
-            ].func(
+            edutest.apply_chatcommand(
                 player_name,
+                "every_member",
                 group_name .. " revoke subject " .. self.privilege
             )
             return true
@@ -2598,10 +2591,9 @@ local privilege_revocation = function(
             self,
             player_name
         )
-            minetest.chatcommands[
-                "every_student"
-            ].func(
+            edutest.apply_chatcommand(
                 player_name,
+                "every_student",
                 "revoke subject " .. self.privilege
             )
             return true
@@ -2611,10 +2603,9 @@ local privilege_revocation = function(
             player_name,
             individual_name
         )
-            minetest.chatcommands[
-                "revoke"
-            ].func(
+            edutest.apply_chatcommand(
                 player_name,
+                "revoke",
                 individual_name .. " " .. self.privilege
             )
             return true
@@ -3153,10 +3144,9 @@ local get_group_controls = function(
             local group = column_mapping.rows[
                 form.resources.selected_index
             ]
-            minetest.chatcommands[
-                "enter_group"
-            ].func(
+            edutest.apply_chatcommand(
                 name,
+                "enter_group",
                 group.name .. " " .. added
             )
             set_current_inventory_form(
@@ -3196,10 +3186,9 @@ local get_group_controls = function(
             local group = column_mapping.rows[
                 form.resources.selected_index
             ]
-            minetest.chatcommands[
-                "leave_group"
-            ].func(
+            edutest.apply_chatcommand(
                 name,
+                "leave_group",
                 group.name .. " " .. removed
             )
             set_current_inventory_form(
@@ -3693,7 +3682,7 @@ local initialize_forms = function(
                 "EDUtest > " .. S(
                     "Manage players"
                 ),
-                20,
+                24,
                 16
             )
             local mapping = generic_axis_mapping_lazy(
@@ -3710,7 +3699,7 @@ local initialize_forms = function(
             )
             local group_control_layout = horizontal_grid_layout(
                 4,
-                20
+                24
             )
             group_control_layout.row_initial = 8
             group_control_layout.column_initial = 0.5
@@ -3753,10 +3742,9 @@ local initialize_forms = function(
                         " ",
                         "_"
                     )
-                    minetest.chatcommands[
-                        "create_group"
-                    ].func(
+                    edutest.apply_chatcommand(
                         name,
+                        "create_group",
                         group_name
                     )
                     form.resources.temp_selected_group = group_name
@@ -3772,7 +3760,7 @@ local initialize_forms = function(
             )
             local multi_control_layout = horizontal_grid_layout(
                 4,
-                20
+                24
             )
             multi_control_layout.row_initial = 10
             local individual_controls = new_conditional_elements(
@@ -3780,7 +3768,7 @@ local initialize_forms = function(
             )
             local individual_control_layout = horizontal_grid_layout(
                 4,
-                20
+                24
             )
             individual_control_layout.row_initial = 7
             local other_teleport = form:new_field(
@@ -3812,10 +3800,9 @@ local initialize_forms = function(
                     if "all" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "every_student"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "every_student",
                             teleport_command .. " subject " .. name
                         )
                         return true
@@ -3823,10 +3810,9 @@ local initialize_forms = function(
                     if "group" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "every_member"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "every_member",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. teleport_command .. " subject " .. name
@@ -3836,10 +3822,9 @@ local initialize_forms = function(
                     if "individual" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            teleport_command
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            teleport_command,
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. name
@@ -3849,10 +3834,9 @@ local initialize_forms = function(
                     if "individual_teacher" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            teleport_command
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            teleport_command,
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. name
@@ -3862,10 +3846,9 @@ local initialize_forms = function(
                     if "individual_offline" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            teleport_command
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            teleport_command,
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. name
@@ -3945,10 +3928,9 @@ local initialize_forms = function(
                         if "individual" == column_mapping.rows[
                             form.resources.selected_index
                         ].type then
-                            minetest.chatcommands[
-                                "return"
-                            ].func(
+                            edutest.apply_chatcommand(
                                 name,
+                                "return",
                                 ""
                             )
                             return true
@@ -3956,10 +3938,9 @@ local initialize_forms = function(
                         if "individual_offline" == column_mapping.rows[
                             form.resources.selected_index
                         ].type then
-                            minetest.chatcommands[
-                                "return"
-                            ].func(
+                            edutest.apply_chatcommand(
                                 name,
+                                "return",
                                 ""
                             )
                             return true
@@ -3967,10 +3948,9 @@ local initialize_forms = function(
                         if "individual_teacher" == column_mapping.rows[
                             form.resources.selected_index
                         ].type then
-                            minetest.chatcommands[
-                                "return"
-                            ].func(
+                            edutest.apply_chatcommand(
                                 name,
+                                "return",
                                 ""
                             )
                             return true
@@ -4039,10 +4019,9 @@ local initialize_forms = function(
                     if "all" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "every_student"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "every_student",
                             "grant subject " .. chosen_privilege
                         )
                         return true
@@ -4050,10 +4029,9 @@ local initialize_forms = function(
                     if "group" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "every_member"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "every_member",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " grant subject " .. chosen_privilege
@@ -4063,10 +4041,9 @@ local initialize_forms = function(
                     if "individual" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "grant"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "grant",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. chosen_privilege
@@ -4076,10 +4053,9 @@ local initialize_forms = function(
                     if "individual_teacher" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "grant"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "grant",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. chosen_privilege
@@ -4089,10 +4065,9 @@ local initialize_forms = function(
                     if "individual_offline" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "grant"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "grant",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. chosen_privilege
@@ -4144,10 +4119,9 @@ local initialize_forms = function(
                     if "all" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "every_student"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "every_student",
                             "revoke subject " .. chosen_privilege
                         )
                         return true
@@ -4155,10 +4129,9 @@ local initialize_forms = function(
                     if "group" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "every_member"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "every_member",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " revoke subject " .. chosen_privilege
@@ -4168,10 +4141,9 @@ local initialize_forms = function(
                     if "individual" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "revoke"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "revoke",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. chosen_privilege
@@ -4181,10 +4153,9 @@ local initialize_forms = function(
                     if "individual_teacher" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "revoke"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "revoke",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. chosen_privilege
@@ -4194,10 +4165,9 @@ local initialize_forms = function(
                     if "individual_offline" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "revoke"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "revoke",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. chosen_privilege
@@ -4282,10 +4252,9 @@ local initialize_forms = function(
                     if "all" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "every_student"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "every_student",
                             "give subject " .. fields[
                                 give_item_chooser
                             ] .. count
@@ -4295,10 +4264,9 @@ local initialize_forms = function(
                     if "group" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "every_member"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "every_member",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " give subject " .. fields[
@@ -4310,10 +4278,9 @@ local initialize_forms = function(
                     if "individual" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "give"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "give",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. fields[
@@ -4325,10 +4292,9 @@ local initialize_forms = function(
                     if "individual_teacher" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "give"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "give",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. fields[
@@ -4340,10 +4306,9 @@ local initialize_forms = function(
                     if "individual_offline" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "give"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "give",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. fields[
@@ -4424,10 +4389,9 @@ local initialize_forms = function(
                     if "all" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "every_student"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "every_student",
                             "item_pack_give subject " .. chosen_pack
                         )
                         return true
@@ -4435,10 +4399,9 @@ local initialize_forms = function(
                     if "group" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "every_member"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "every_member",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " item_pack_give subject " .. chosen_pack
@@ -4448,10 +4411,9 @@ local initialize_forms = function(
                     if "individual" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "item_pack_give"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "item_pack_give",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. chosen_pack
@@ -4461,10 +4423,9 @@ local initialize_forms = function(
                     if "individual_teacher" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "item_pack_give"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "item_pack_give",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. chosen_pack
@@ -4474,10 +4435,9 @@ local initialize_forms = function(
                     if "individual_offline" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "item_pack_give"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "item_pack_give",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. chosen_pack
@@ -4515,10 +4475,9 @@ local initialize_forms = function(
                     if "all" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "every_student"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "every_student",
                             "clearinv subject"
                         )
                         return true
@@ -4526,10 +4485,9 @@ local initialize_forms = function(
                     if "group" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "every_member"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "every_member",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " clearinv subject"
@@ -4539,10 +4497,9 @@ local initialize_forms = function(
                     if "individual" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "clearinv"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "clearinv",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name
@@ -4552,10 +4509,9 @@ local initialize_forms = function(
                     if "individual_teacher" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "clearinv"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "clearinv",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name
@@ -4565,10 +4521,9 @@ local initialize_forms = function(
                     if "individual_offline" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "clearinv"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "clearinv",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name
@@ -4607,10 +4562,9 @@ local initialize_forms = function(
                     if "individual" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            teleport_command
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            teleport_command,
                             name .. " " .. column_mapping.rows[
                                 form.resources.selected_index
                             ].name
@@ -4620,10 +4574,9 @@ local initialize_forms = function(
                     if "individual_teacher" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            teleport_command
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            teleport_command,
                             name .. " " .. column_mapping.rows[
                                 form.resources.selected_index
                             ].name
@@ -4633,10 +4586,9 @@ local initialize_forms = function(
                     if "individual_offline" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            teleport_command
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            teleport_command,
                             name .. " " .. column_mapping.rows[
                                 form.resources.selected_index
                             ].name
@@ -4702,10 +4654,9 @@ local initialize_forms = function(
                     or "individual_offline" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "setpassword"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "setpassword",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. fields[
@@ -4761,10 +4712,9 @@ local initialize_forms = function(
                     if "individual" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "kick"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "kick",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name .. " " .. fields[
@@ -4826,10 +4776,9 @@ local initialize_forms = function(
                     if "individual" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "ban"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "ban",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name
@@ -4895,10 +4844,9 @@ local initialize_forms = function(
                     or "individual_offline" == column_mapping.rows[
                         form.resources.selected_index
                     ].type then
-                        minetest.chatcommands[
-                            "unban"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "unban",
                             column_mapping.rows[
                                 form.resources.selected_index
                             ].name
@@ -5510,10 +5458,9 @@ local initialize_forms = function(
                             end
                             count = " " .. count_matched
                         end
-                        minetest.chatcommands[
-                            "item_pack_add"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "item_pack_add",
                             fields[
                                 new_pack_name
                             ] .. " " .. fields[
@@ -5678,10 +5625,9 @@ local initialize_forms = function(
                                         local name = player:get_player_name(
                                         )
                                         local pack = form.resources.selected_item_pack
-                                        minetest.chatcommands[
-                                            "item_pack_remove"
-                                        ].func(
+                                        edutest.apply_chatcommand(
                                             name,
+                                            "item_pack_remove",
                                             pack .. " " .. fields[
                                                 item_pack_content
                                             ]
@@ -5698,10 +5644,9 @@ local initialize_forms = function(
                                         local name = player:get_player_name(
                                         )
                                         local pack = form.resources.selected_item_pack
-                                        minetest.chatcommands[
-                                            "item_pack_add"
-                                        ].func(
+                                        edutest.apply_chatcommand(
                                             name,
+                                            "item_pack_add",
                                             pack .. " " .. fields[
                                                 item_pack_content
                                             ] .. " 1"
@@ -5717,10 +5662,9 @@ local initialize_forms = function(
                                         local name = player:get_player_name(
                                         )
                                         local pack = form.resources.selected_item_pack
-                                        minetest.chatcommands[
-                                            "item_pack_remove"
-                                        ].func(
+                                        edutest.apply_chatcommand(
                                             name,
+                                            "item_pack_remove",
                                             pack .. " " .. fields[
                                                 item_pack_content
                                             ] .. " 1"
@@ -6066,10 +6010,9 @@ local initialize_forms = function(
                                     group_prefix
                                 ) + 1
                             )
-                            minetest.chatcommands[
-                                "every_member"
-                            ].func(
+                            edutest.apply_chatcommand(
                                 name,
+                                "every_member",
                                 group_name .. " notify subject " .. fields[
                                     notification
                                 ]
@@ -6079,20 +6022,18 @@ local initialize_forms = function(
                         if all_students_entry == fields[
                             subject
                         ] then
-                            minetest.chatcommands[
-                                "every_student"
-                            ].func(
+                            edutest.apply_chatcommand(
                                 name,
+                                "every_student",
                                 "notify subject " .. fields[
                                     notification
                                 ]
                             )
                             return true
                         end
-                        minetest.chatcommands[
-                            "notify"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "notify",
                             fields[
                                 subject
                             ] .. " " .. fields[
@@ -6239,10 +6180,9 @@ local initialize_forms = function(
                                 " ",
                                 "_"
                             )
-                            minetest.chatcommands[
-                                "create_group"
-                            ].func(
+                            edutest.apply_chatcommand(
                                 name,
+                                "create_group",
                                 group_name
                             )
                         else
@@ -6250,10 +6190,9 @@ local initialize_forms = function(
                                 group
                             ]
                         end
-                        minetest.chatcommands[
-                            "enter_group"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "enter_group",
                             group_name .. " " .. fields[
                                 subject
                             ]
@@ -6315,10 +6254,9 @@ local initialize_forms = function(
                                 " ",
                                 "_"
                             )
-                            minetest.chatcommands[
-                                "create_group"
-                            ].func(
+                            edutest.apply_chatcommand(
                                 name,
+                                "create_group",
                                 group_name
                             )
                         else
@@ -6326,10 +6264,9 @@ local initialize_forms = function(
                                 group
                             ]
                         end
-                        minetest.chatcommands[
-                            "leave_group"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "leave_group",
                             group_name .. " " .. fields[
                                 subject
                             ]
@@ -6409,17 +6346,15 @@ local initialize_forms = function(
                         if nil ~= minetest.chatcommands[
                             "highlight_pos1"
                         ] then
-                            minetest.chatcommands[
-                                "highlight_pos1"
-                            ].func(
+                            edutest.apply_chatcommand(
                                 name,
+                                "highlight_pos1",
                                 ""
                             )
                         else
-                            minetest.chatcommands[
-                                "area_pos"
-                            ].func(
+                            edutest.apply_chatcommand(
                                 name,
+                                "area_pos",
                                 "set1"
                             )
                             minetest.chat_send_player(
@@ -6451,17 +6386,15 @@ local initialize_forms = function(
                         if nil ~= minetest.chatcommands[
                             "highlight_pos2"
                         ] then
-                            minetest.chatcommands[
-                                "highlight_pos2"
-                            ].func(
+                            edutest.apply_chatcommand(
                                 name,
+                                "highlight_pos2",
                                 ""
                             )
                         else
-                            minetest.chatcommands[
-                                "area_pos"
-                            ].func(
+                            edutest.apply_chatcommand(
                                 name,
+                                "area_pos",
                                 "set2"
                             )
                             minetest.chat_send_player(
@@ -6562,20 +6495,18 @@ local initialize_forms = function(
                                     group_prefix
                                 ) + 1
                             )
-                            minetest.chatcommands[
-                                "highlight_set_owner_group"
-                            ].func(
+                            edutest.apply_chatcommand(
                                 name,
+                                "highlight_set_owner_group",
                                 group_name .. " " .. fields[
                                     area_name
                                 ]
                             )
                             return true
                         end
-                        minetest.chatcommands[
-                            "highlight_areas"
-                        ].func(
+                        edutest.apply_chatcommand(
                             name,
+                            "highlight_areas",
                             "set_owner " .. fields[
                                 owner
                             ] .. " " .. fields[
@@ -6614,17 +6545,15 @@ local initialize_forms = function(
                         invincible = true
                     }
                 ) then
-                    minetest.chatcommands[
-                        "revoke"
-                    ].func(
+                    edutest.apply_chatcommand(
                         name,
+                        "revoke",
                         name .. " invincible"
                     )
                 else
-                    minetest.chatcommands[
-                        "grant"
-                    ].func(
+                    edutest.apply_chatcommand(
                         name,
+                        "grant",
                         name .. " invincible"
                     )
                 end
@@ -6651,10 +6580,9 @@ local initialize_forms = function(
             )
                 local name = player:get_player_name(
                 )
-                minetest.chatcommands[
-                    "vanish"
-                ].func(
+                edutest.apply_chatcommand(
                     name,
+                    "vanish",
                     ""
                 )
                 return true
