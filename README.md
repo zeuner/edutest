@@ -25,9 +25,9 @@ granted the "teacher" privilege. Actions have an effect to all players that have
 * areas (https://github.com/ShadowNinja/areas)
 * invincibility (https://github.com/zeuner/invincibility)
 * playerfactions (https://github.com/mt-mods/playerfactions)
+* hud_notify (https://github.com/MT-CTF/hud_notify)
 
 ## optional dependencies (no active support)
 
 * invis (https://github.com/octacian/minetest-mod-invis)
 * freeze (https://github.com/PenguinDad/freeze)
-* hud_notify (https://github.com/ClobberXD/hud_notify)
