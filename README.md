@@ -21,10 +21,13 @@ granted the "teacher" privilege. Actions have an effect to all players that have
 ## optional dependencies
 
 * unified_inventory (https://github.com/minetest-technic/unified_inventory)
-* freeze (https://github.com/PenguinDad/freeze)
 * pvpplus (https://github.com/MT-Eurythmia/pvpplus)
-* invis (https://github.com/octacian/minetest-mod-invis)
 * areas (https://github.com/ShadowNinja/areas)
 * invincibility (https://github.com/zeuner/invincibility)
-* hud_notify (https://github.com/ClobberXD/hud_notify)
 * playerfactions (https://github.com/mt-mods/playerfactions)
+
+## optional dependencies (no active support)
+
+* invis (https://github.com/octacian/minetest-mod-invis)
+* freeze (https://github.com/PenguinDad/freeze)
+* hud_notify (https://github.com/ClobberXD/hud_notify)
